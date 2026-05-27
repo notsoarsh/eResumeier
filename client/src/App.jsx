@@ -47,13 +47,24 @@ function App() {
       <Navbar user={user} onLogout={handleLogout} />
       <Routes>
         <Route path="/" element={<Dashboard user={user} />} />
-        <Route path="/resumes" element={<ResumeUpload user={user} />} />
         <Route path="/jobs" element={<Jobs user={user} />} />
-        <Route path="/matching" element={<Matching user={user} />} />
-        <Route path="/results/:runId" element={<Results />} />
-        <Route path="/results" element={<Results />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/admin" element={<Admin user={user} />} />
+        <Route path="/results/:runId" element={<Results user={user} />} />
+        <Route path="/results" element={<Results user={user} />} />
+
+        {/* Candidate & Admin: resume upload */}
+        {(user.role === 'candidate' || user.role === 'admin') && (
+          <Route path="/resumes" element={<ResumeUpload user={user} />} />
+        )}
+
+        {/* Admin only: matching engine, history, admin panel */}
+        {user.role === 'admin' && (
+          <>
+            <Route path="/matching" element={<Matching user={user} />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/admin" element={<Admin user={user} />} />
+          </>
+        )}
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
