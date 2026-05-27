@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { PageLoader, SkeletonCard } from '../components/Loader';
 import './Pages.css';
 
 function Dashboard({ user }) {

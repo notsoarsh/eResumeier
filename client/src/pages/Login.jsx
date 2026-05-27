@@ -43,7 +43,9 @@ function Login({ onLogin }) {
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (
+              <><span className="btn-spinner" /> Signing in...</>
+            ) : 'Sign In'}
           </button>
         </form>
         <p className="auth-footer">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api';
+import { PageLoader } from '../components/Loader';
 import './Pages.css';
 
 function Results() {
@@ -37,7 +38,7 @@ function Results() {
   };
 
   if (loading) {
-    return <div className="page"><div className="loading"><div className="spinner" /><p>Loading results...</p></div></div>;
+    return <div className="page"><PageLoader message="Loading match results..." /></div>;
   }
 
   if (!run) {
