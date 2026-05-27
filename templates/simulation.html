@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eResumeier - Full Platform Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        /* Navigation */
+        .navbar {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 0.75rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar .logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .navbar .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .navbar .nav-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .navbar .nav-links a:hover { color: #60a5fa; }
+        .navbar .nav-links a.active { color: #60a5fa; font-weight: 600; }
+        .navbar .user-badge {
+            background: #334155;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #60a5fa;
+        }
+        /* Page sections */
+        .page { display: none; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        .page.active { display: block; }
+        /* Login/Register Pages */
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 60px);
+            padding: 2rem;
+        }
+        .auth-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 440px;
+            border: 1px solid #334155;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .auth-card h2 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+        .auth-card .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(59,130,246,0.4); }
+        .btn-secondary { background: #334155; color: #e2e8f0; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-success { background: #059669; color: white; }
+        .btn-success:hover { background: #047857; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+        .auth-footer a { color: #60a5fa; cursor: pointer; text-decoration: none; }
+        .role-toggle {
+            display: flex;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+        }
+        .role-toggle button {
+            flex: 1;
+            padding: 0.6rem;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #94a3b8;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .role-toggle button.active {
+            background: #3b82f6;
+            color: white;
+        }
+        /* Dashboard Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+        }
+        .stat-card .stat-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: #60a5fa; }
+        .stat-card .stat-label { color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem; }
+        /* Upload Area */
+        .upload-zone {
+            border: 2px dashed #475569;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #1e293b;
+            margin-bottom: 1.5rem;
+        }
+        .upload-zone:hover { border-color: #60a5fa; background: #1e293b; }
+        .upload-zone .upload-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .upload-zone p { color: #94a3b8; }
+        .upload-zone .formats { font-size: 0.8rem; color: #64748b; margin-top: 0.5rem; }
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .data-table th {
+            background: #334155;
+            padding: 0.85rem 1rem;
+            text-align: left;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+        .data-table td {
+            padding: 0.85rem 1rem;
+            border-top: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+        .data-table tr:hover td { background: #253349; }
+        /* Status badges */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #065f46; color: #34d399; }
+        .badge-warning { background: #78350f; color: #fbbf24; }
+        .badge-info { background: #1e3a5f; color: #60a5fa; }
+        .badge-danger { background: #7f1d1d; color: #fca5a5; }
+        /* Match Cards */
+        .match-result-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .match-result-card .match-pair {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .match-result-card .entity {
+            text-align: center;
+        }
+        .match-result-card .entity .name { font-weight: 700; font-size: 1.05rem; }
+        .match-result-card .entity .role { color: #94a3b8; font-size: 0.8rem; }
+        .match-result-card .arrow { color: #34d399; font-size: 1.5rem; }
+        .match-result-card .score-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .score-high { background: #065f46; color: #34d399; border: 2px solid #34d399; }
+        .score-med { background: #78350f; color: #fbbf24; border: 2px solid #fbbf24; }
+        .score-low { background: #7f1d1d; color: #fca5a5; border: 2px solid #fca5a5; }
+        /* Section headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .section-header h2 { font-size: 1.5rem; }
+        .section-header p { color: #94a3b8; font-size: 0.9rem; }
+        /* Panels */
+        .panel {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            margin-bottom: 1.5rem;
+        }
+        .panel h3 { margin-bottom: 1rem; color: #e2e8f0; }
+        /* Progress bars */
+        .progress-bar {
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+        /* Skill tags */
+        .skill-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+        .skill-tag {
+            background: #334155;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+        /* Grid layouts */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        /* Tabs */
+        .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid #334155; }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: #e2e8f0; }
+        .tab.active { color: #60a5fa; border-bottom-color: #60a5fa; font-weight: 600; }
+        /* Search bar */
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #1e293b;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .search-bar select {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #1e293b;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        /* Job cards */
+        .job-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+        .job-card:hover { border-color: #60a5fa; }
+        .job-card .job-header { display: flex; justify-content: space-between; align-items: start; }
+        .job-card .job-title { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; }
+        .job-card .company { color: #a78bfa; font-size: 0.9rem; margin-top: 0.25rem; }
+        .job-card .job-meta { display: flex; gap: 1rem; margin-top: 0.75rem; color: #94a3b8; font-size: 0.8rem; }
+        /* Notification dot */
+        .notif-dot {
+            width: 8px; height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 4px;
+        }
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #065f46;
+            color: #34d399;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .two-col, .three-col { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .navbar { padding: 0.75rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR (hidden on login/register) -->
+    <nav class="navbar" id="navbar" style="display:none;">
+        <span class="logo">⚡ eResumeier</span>
+        <div class="nav-links">
+            <a onclick="showPage('dashboard')" id="nav-dashboard">Dashboard</a>
+            <a onclick="showPage('upload')" id="nav-upload">Upload Resume</a>
+            <a onclick="showPage('jobs')" id="nav-jobs">Jobs</a>
+            <a onclick="showPage('matching')" id="nav-matching">Matching</a>
+            <a onclick="showPage('results')" id="nav-results">Results</a>
+            <a onclick="showPage('history')" id="nav-history">History</a>
+            <a onclick="showPage('admin')" id="nav-admin">Admin</a>
+        </div>
+        <div class="user-badge" id="user-badge">👤 Arjun Singh</div>
+    </nav>
+
+    <!-- PAGE: LOGIN -->
+    <div class="page active" id="page-login">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h2>⚡ eResumeier</h2>
+                <p class="subtitle">Intelligent Resume Matching Platform</p>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="you@example.com" value="arjun@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="••••••••" value="password123">
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:#94a3b8;">
+                        <input type="checkbox" checked> Remember me
+                    </label>
+                    <a style="font-size:0.85rem;color:#60a5fa;cursor:pointer;">Forgot password?</a>
+                </div>
+                <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+                <p class="auth-footer">Don't have an account? <a onclick="showPage('register')">Create one</a></p>
+            </div>
+        </div>
+    </div>
+    <!-- PAGE: REGISTER -->
+    <div class="page" id="page-register">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h2>Create Account</h2>
+                <p class="subtitle">Join eResumeier to find your perfect match</p>
+                <div class="role-toggle">
+                    <button class="active" onclick="this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Job Seeker</button>
+                    <button onclick="this.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Employer</button>
+                </div>
+                <div class="two-col" style="gap:1rem;">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" placeholder="Arjun">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" placeholder="Singh">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="Min 8 characters">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" placeholder="Re-enter password">
+                </div>
+                <div style="margin-bottom:1.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:#94a3b8;">
+                        <input type="checkbox"> I agree to the Terms of Service and Privacy Policy
+                    </label>
+                </div>
+                <button class="btn btn-primary" onclick="doLogin()">Create Account</button>
+                <p class="auth-footer">Already have an account? <a onclick="showPage('login')">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+    <!-- PAGE: DASHBOARD -->
+    <div class="page" id="page-dashboard">
+        <div class="section-header">
+            <div>
+                <h2>Welcome back, Arjun 👋</h2>
+                <p>Here's your matching overview</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showPage('matching')">🚀 Run New Match</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📄</div>
+                <div class="stat-value">12</div>
+                <div class="stat-label">Resumes Uploaded</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💼</div>
+                <div class="stat-value">28</div>
+                <div class="stat-label">Active Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value">8</div>
+                <div class="stat-label">Stable Matches</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value">94.2%</div>
+                <div class="stat-label">Avg Match Score</div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="panel">
+                <h3>📈 Recent Match Activity</h3>
+                <table class="data-table">
+                    <thead><tr><th>Candidate</th><th>Job</th><th>Score</th><th>Date</th></tr></thead>
+                    <tbody>
+                        <tr><td>Alice Johnson</td><td>Sr. Data Scientist</td><td><span class="badge badge-success">92%</span></td><td>May 27</td></tr>
+                        <tr><td>Bob Smith</td><td>Frontend Engineer</td><td><span class="badge badge-success">87%</span></td><td>May 27</td></tr>
+                        <tr><td>Carol Williams</td><td>Cloud Eng. Manager</td><td><span class="badge badge-warning">78%</span></td><td>May 26</td></tr>
+                        <tr><td>Dave Kumar</td><td>ML Engineer</td><td><span class="badge badge-success">95%</span></td><td>May 26</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel">
+                <h3>🔔 Notifications</h3>
+                <div style="padding:0.75rem 0;border-bottom:1px solid #334155;">
+                    <div style="font-size:0.9rem;">New match found: <strong>Eve Park → Tech Lead</strong></div>
+                    <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.25rem;">2 minutes ago</div>
+                </div>
+                <div style="padding:0.75rem 0;border-bottom:1px solid #334155;">
+                    <div style="font-size:0.9rem;">Resume parsed: <strong>Frank Chen</strong></div>
+                    <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.25rem;">15 minutes ago</div>
+                </div>
+                <div style="padding:0.75rem 0;border-bottom:1px solid #334155;">
+                    <div style="font-size:0.9rem;">Job posted: <strong>Backend Developer at TechCorp</strong></div>
+                    <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.25rem;">1 hour ago</div>
+                </div>
+                <div style="padding:0.75rem 0;">
+                    <div style="font-size:0.9rem;">System: <strong>Matching engine updated to v2.1</strong></div>
+                    <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.25rem;">3 hours ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- PAGE: RESUME UPLOAD -->
+    <div class="page" id="page-upload">
+        <div class="section-header">
+            <div>
+                <h2>📄 Resume Upload & Parsing</h2>
+                <p>Upload resumes for AI-powered feature extraction</p>
+            </div>
+        </div>
+
+        <div class="upload-zone" onclick="simulateUpload()">
+            <div class="upload-icon">📁</div>
+            <p><strong>Drag & drop resume files here</strong></p>
+            <p>or click to browse</p>
+            <p class="formats">Supported: PDF, DOCX, TXT (Max 10MB)</p>
+        </div>
+
+        <div class="panel" id="parsed-resume" style="display:none;">
+            <h3>✅ Resume Parsed Successfully</h3>
+            <div style="margin-top:1rem;">
+                <div class="two-col">
+                    <div>
+                        <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:0.5rem;">CANDIDATE NAME</p>
+                        <p style="font-weight:700;font-size:1.1rem;">Arjun Singh</p>
+                        <p style="color:#94a3b8;font-size:0.8rem;margin-top:1rem;margin-bottom:0.5rem;">EDUCATION</p>
+                        <p>B.Tech Computer Science — VIT University</p>
+                        <p style="color:#94a3b8;font-size:0.8rem;margin-top:1rem;margin-bottom:0.5rem;">EXPERIENCE</p>
+                        <p>3 years — Full Stack Development</p>
+                    </div>
+                    <div>
+                        <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:0.5rem;">EXTRACTED SKILLS</p>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Python</span>
+                            <span class="skill-tag">JavaScript</span>
+                            <span class="skill-tag">React</span>
+                            <span class="skill-tag">Node.js</span>
+                            <span class="skill-tag">SQL</span>
+                            <span class="skill-tag">AWS</span>
+                            <span class="skill-tag">Machine Learning</span>
+                            <span class="skill-tag">Docker</span>
+                        </div>
+                        <p style="color:#94a3b8;font-size:0.8rem;margin-top:1rem;margin-bottom:0.5rem;">FEATURE VECTOR (12D)</p>
+                        <code style="font-size:0.8rem;color:#60a5fa;">[7, 8, 6, 5, 6, 7, 7, 4, 7, 4, 5, 5]</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>📋 Uploaded Resumes</h3>
+            <table class="data-table">
+                <thead><tr><th>Name</th><th>File</th><th>Skills Extracted</th><th>Status</th><th>Uploaded</th></tr></thead>
+                <tbody>
+                    <tr><td>Alice Johnson</td><td>alice_resume.pdf</td><td>12 skills</td><td><span class="badge badge-success">Parsed</span></td><td>May 27, 2026</td></tr>
+                    <tr><td>Bob Smith</td><td>bob_cv.docx</td><td>9 skills</td><td><span class="badge badge-success">Parsed</span></td><td>May 27, 2026</td></tr>
+                    <tr><td>Carol Williams</td><td>carol_resume.pdf</td><td>14 skills</td><td><span class="badge badge-success">Parsed</span></td><td>May 26, 2026</td></tr>
+                    <tr><td>Dave Kumar</td><td>dave_cv.pdf</td><td>11 skills</td><td><span class="badge badge-success">Parsed</span></td><td>May 26, 2026</td></tr>
+                    <tr><td>Eve Park</td><td>eve_resume.txt</td><td>10 skills</td><td><span class="badge badge-warning">Processing</span></td><td>May 27, 2026</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- PAGE: JOBS -->
+    <div class="page" id="page-jobs">
+        <div class="section-header">
+            <div>
+                <h2>💼 Job Postings</h2>
+                <p>Browse and manage job descriptions</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Job posting form opened')">+ Post New Job</button>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" placeholder="Search jobs by title, company, or skills...">
+            <select>
+                <option>All Categories</option>
+                <option>Engineering</option>
+                <option>Data Science</option>
+                <option>Management</option>
+                <option>Design</option>
+            </select>
+            <select>
+                <option>All Locations</option>
+                <option>Remote</option>
+                <option>Bangalore</option>
+                <option>San Francisco</option>
+                <option>New York</option>
+            </select>
+        </div>
+
+        <div class="job-card">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">Senior Data Scientist</div>
+                    <div class="company">🏢 TechCorp AI Labs</div>
+                </div>
+                <span class="badge badge-success">Active</span>
+            </div>
+            <div class="job-meta">
+                <span>📍 Remote</span>
+                <span>💰 ₹25-35 LPA</span>
+                <span>⏰ Full-time</span>
+                <span>📅 Posted 2 days ago</span>
+            </div>
+            <div class="skill-tags">
+                <span class="skill-tag">Python</span>
+                <span class="skill-tag">Machine Learning</span>
+                <span class="skill-tag">TensorFlow</span>
+                <span class="skill-tag">SQL</span>
+                <span class="skill-tag">AWS SageMaker</span>
+            </div>
+        </div>
+
+        <div class="job-card">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">Frontend Engineer (React)</div>
+                    <div class="company">🏢 StartupXYZ</div>
+                </div>
+                <span class="badge badge-success">Active</span>
+            </div>
+            <div class="job-meta">
+                <span>📍 Bangalore</span>
+                <span>💰 ₹15-22 LPA</span>
+                <span>⏰ Full-time</span>
+                <span>📅 Posted 3 days ago</span>
+            </div>
+            <div class="skill-tags">
+                <span class="skill-tag">React</span>
+                <span class="skill-tag">TypeScript</span>
+                <span class="skill-tag">CSS</span>
+                <span class="skill-tag">Accessibility</span>
+                <span class="skill-tag">Node.js</span>
+            </div>
+        </div>
+
+        <div class="job-card">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">Cloud Engineering Manager</div>
+                    <div class="company">🏢 GlobalTech Solutions</div>
+                </div>
+                <span class="badge badge-success">Active</span>
+            </div>
+            <div class="job-meta">
+                <span>📍 San Francisco</span>
+                <span>💰 $180-220K</span>
+                <span>⏰ Full-time</span>
+                <span>📅 Posted 1 week ago</span>
+            </div>
+            <div class="skill-tags">
+                <span class="skill-tag">AWS</span>
+                <span class="skill-tag">GCP</span>
+                <span class="skill-tag">Terraform</span>
+                <span class="skill-tag">Leadership</span>
+                <span class="skill-tag">PMP</span>
+            </div>
+        </div>
+        <div class="job-card">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">ML Engineer — NLP Focus</div>
+                    <div class="company">🏢 DeepMind India</div>
+                </div>
+                <span class="badge badge-warning">Closing Soon</span>
+            </div>
+            <div class="job-meta">
+                <span>📍 Bangalore</span>
+                <span>💰 ₹30-45 LPA</span>
+                <span>⏰ Full-time</span>
+                <span>📅 Posted 5 days ago</span>
+            </div>
+            <div class="skill-tags">
+                <span class="skill-tag">Python</span>
+                <span class="skill-tag">PyTorch</span>
+                <span class="skill-tag">NLP</span>
+                <span class="skill-tag">Deep Learning</span>
+                <span class="skill-tag">Research</span>
+            </div>
+        </div>
+
+        <div class="job-card">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">Technical Lead — Backend</div>
+                    <div class="company">🏢 Flipkart</div>
+                </div>
+                <span class="badge badge-success">Active</span>
+            </div>
+            <div class="job-meta">
+                <span>📍 Bangalore</span>
+                <span>💰 ₹35-50 LPA</span>
+                <span>⏰ Full-time</span>
+                <span>📅 Posted 1 day ago</span>
+            </div>
+            <div class="skill-tags">
+                <span class="skill-tag">Java</span>
+                <span class="skill-tag">Microservices</span>
+                <span class="skill-tag">System Design</span>
+                <span class="skill-tag">Leadership</span>
+                <span class="skill-tag">Kafka</span>
+            </div>
+        </div>
+    </div>
+    <!-- PAGE: MATCHING ENGINE -->
+    <div class="page" id="page-matching">
+        <div class="section-header">
+            <div>
+                <h2>🎯 Matching Engine</h2>
+                <p>Run the Stable Marriage Algorithm on candidate-job pairs</p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>⚙️ Algorithm Configuration</h3>
+            <div class="three-col" style="margin-top:1rem;">
+                <div class="form-group">
+                    <label>Similarity Metric</label>
+                    <select>
+                        <option selected>Manhattan Distance</option>
+                        <option>Euclidean Distance</option>
+                        <option>Cosine Similarity</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Matching Algorithm</label>
+                    <select>
+                        <option selected>Gale-Shapley (Stable Marriage)</option>
+                        <option>Hungarian Algorithm</option>
+                        <option>Greedy Matching</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Proposing Side</label>
+                    <select>
+                        <option selected>Candidate-Proposing</option>
+                        <option>Employer-Proposing</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="panel">
+                <h3>👥 Candidates Pool (5 selected)</h3>
+                <table class="data-table">
+                    <thead><tr><th>✓</th><th>Name</th><th>Top Skills</th></tr></thead>
+                    <tbody>
+                        <tr><td>☑️</td><td>Alice Johnson</td><td>Python, ML, Data</td></tr>
+                        <tr><td>☑️</td><td>Bob Smith</td><td>React, TypeScript, CSS</td></tr>
+                        <tr><td>☑️</td><td>Carol Williams</td><td>AWS, Terraform, Leadership</td></tr>
+                        <tr><td>☑️</td><td>Dave Kumar</td><td>Python, PyTorch, NLP</td></tr>
+                        <tr><td>☑️</td><td>Eve Park</td><td>Cloud, PM, Communication</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel">
+                <h3>💼 Jobs Pool (5 selected)</h3>
+                <table class="data-table">
+                    <thead><tr><th>✓</th><th>Position</th><th>Company</th></tr></thead>
+                    <tbody>
+                        <tr><td>☑️</td><td>Sr. Data Scientist</td><td>TechCorp AI</td></tr>
+                        <tr><td>☑️</td><td>Frontend Engineer</td><td>StartupXYZ</td></tr>
+                        <tr><td>☑️</td><td>Cloud Eng. Manager</td><td>GlobalTech</td></tr>
+                        <tr><td>☑️</td><td>ML Engineer</td><td>DeepMind India</td></tr>
+                        <tr><td>☑️</td><td>Technical Lead</td><td>Flipkart</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="text-align:center;margin:2rem 0;">
+            <button class="btn btn-primary" style="width:auto;padding:1rem 3rem;font-size:1.1rem;" onclick="runSimulatedMatch()">
+                🚀 Run eResumeier Matching
+            </button>
+        </div>
+
+        <div class="panel" id="matching-progress" style="display:none;">
+            <h3>⏳ Matching in Progress...</h3>
+            <div style="margin-top:1rem;">
+                <p style="font-size:0.9rem;color:#94a3b8;">Step 1: Extracting feature vectors via LLM...</p>
+                <div class="progress-bar"><div class="fill" style="width:100%;background:#34d399;"></div></div>
+                <p style="font-size:0.9rem;color:#94a3b8;margin-top:1rem;">Step 2: Computing Manhattan Distance scores...</p>
+                <div class="progress-bar"><div class="fill" style="width:100%;background:#34d399;"></div></div>
+                <p style="font-size:0.9rem;color:#94a3b8;margin-top:1rem;">Step 3: Building preference matrices...</p>
+                <div class="progress-bar"><div class="fill" style="width:100%;background:#34d399;"></div></div>
+                <p style="font-size:0.9rem;color:#94a3b8;margin-top:1rem;">Step 4: Running Gale-Shapley algorithm...</p>
+                <div class="progress-bar"><div class="fill" style="width:100%;background:#60a5fa;"></div></div>
+            </div>
+        </div>
+    </div>
+    <!-- PAGE: RESULTS -->
+    <div class="page" id="page-results">
+        <div class="section-header">
+            <div>
+                <h2>🏆 Matching Results</h2>
+                <p>Stable matches generated — no blocking pairs exist</p>
+            </div>
+            <span class="badge badge-success" style="font-size:0.9rem;padding:0.5rem 1rem;">✓ STABLE MATCHING</span>
+        </div>
+
+        <div class="match-result-card">
+            <div class="match-pair">
+                <div class="entity">
+                    <div class="name" style="color:#60a5fa;">Alice Johnson</div>
+                    <div class="role">Data Scientist • 6 yrs exp</div>
+                </div>
+                <div class="arrow">⟷</div>
+                <div class="entity">
+                    <div class="name" style="color:#a78bfa;">Sr. Data Scientist</div>
+                    <div class="role">TechCorp AI Labs</div>
+                </div>
+            </div>
+            <div class="score-circle score-high">92%</div>
+        </div>
+
+        <div class="match-result-card">
+            <div class="match-pair">
+                <div class="entity">
+                    <div class="name" style="color:#60a5fa;">Dave Kumar</div>
+                    <div class="role">ML Researcher • 4 yrs exp</div>
+                </div>
+                <div class="arrow">⟷</div>
+                <div class="entity">
+                    <div class="name" style="color:#a78bfa;">ML Engineer — NLP</div>
+                    <div class="role">DeepMind India</div>
+                </div>
+            </div>
+            <div class="score-circle score-high">95%</div>
+        </div>
+
+        <div class="match-result-card">
+            <div class="match-pair">
+                <div class="entity">
+                    <div class="name" style="color:#60a5fa;">Bob Smith</div>
+                    <div class="role">Frontend Dev • 4 yrs exp</div>
+                </div>
+                <div class="arrow">⟷</div>
+                <div class="entity">
+                    <div class="name" style="color:#a78bfa;">Frontend Engineer</div>
+                    <div class="role">StartupXYZ</div>
+                </div>
+            </div>
+            <div class="score-circle score-high">87%</div>
+        </div>
+
+        <div class="match-result-card">
+            <div class="match-pair">
+                <div class="entity">
+                    <div class="name" style="color:#60a5fa;">Carol Williams</div>
+                    <div class="role">Cloud Architect • 10 yrs exp</div>
+                </div>
+                <div class="arrow">⟷</div>
+                <div class="entity">
+                    <div class="name" style="color:#a78bfa;">Cloud Eng. Manager</div>
+                    <div class="role">GlobalTech Solutions</div>
+                </div>
+            </div>
+            <div class="score-circle score-high">89%</div>
+        </div>
+
+        <div class="match-result-card">
+            <div class="match-pair">
+                <div class="entity">
+                    <div class="name" style="color:#60a5fa;">Eve Park</div>
+                    <div class="role">Tech Lead • 8 yrs exp</div>
+                </div>
+                <div class="arrow">⟷</div>
+                <div class="entity">
+                    <div class="name" style="color:#a78bfa;">Technical Lead</div>
+                    <div class="role">Flipkart</div>
+                </div>
+            </div>
+            <div class="score-circle score-med">78%</div>
+        </div>
+        <!-- Score Matrix -->
+        <div class="panel" style="margin-top:2rem;">
+            <h3>📊 Full Similarity Score Matrix (Manhattan Distance)</h3>
+            <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:1rem;">S = 1 / (1 + Σ|Ri - Ji|) — Green cells indicate final stable matches</p>
+            <div style="overflow-x:auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th></th><th>Sr. Data Scientist</th><th>Frontend Engineer</th><th>Cloud Eng. Mgr</th><th>ML Engineer</th><th>Tech Lead</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Alice</strong></td><td style="background:#065f46;color:#34d399;font-weight:700;">92.3%</td><td>23.1%</td><td>34.5%</td><td>78.6%</td><td>28.9%</td></tr>
+                        <tr><td><strong>Bob</strong></td><td>25.0%</td><td style="background:#065f46;color:#34d399;font-weight:700;">87.2%</td><td>31.2%</td><td>22.7%</td><td>45.3%</td></tr>
+                        <tr><td><strong>Carol</strong></td><td>38.5%</td><td>29.4%</td><td style="background:#065f46;color:#34d399;font-weight:700;">89.1%</td><td>33.3%</td><td>67.8%</td></tr>
+                        <tr><td><strong>Dave</strong></td><td>81.2%</td><td>21.4%</td><td>28.6%</td><td style="background:#065f46;color:#34d399;font-weight:700;">95.0%</td><td>26.3%</td></tr>
+                        <tr><td><strong>Eve</strong></td><td>22.7%</td><td>41.7%</td><td>62.5%</td><td>19.2%</td><td style="background:#065f46;color:#34d399;font-weight:700;">78.4%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Match Justification -->
+        <div class="panel">
+            <h3>📝 Match Justification — Alice ↔ Sr. Data Scientist</h3>
+            <div class="two-col" style="margin-top:1rem;">
+                <div>
+                    <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:0.5rem;">MATCHING FACTORS</p>
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>Python Proficiency</span><span>9/10 vs 8/10</span></div>
+                        <div class="progress-bar"><div class="fill" style="width:95%;background:#34d399;"></div></div>
+                    </div>
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>Machine Learning</span><span>8/10 vs 9/10</span></div>
+                        <div class="progress-bar"><div class="fill" style="width:90%;background:#34d399;"></div></div>
+                    </div>
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>Data Analysis</span><span>9/10 vs 9/10</span></div>
+                        <div class="progress-bar"><div class="fill" style="width:100%;background:#34d399;"></div></div>
+                    </div>
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>Years Experience</span><span>6 yrs vs 5+ req</span></div>
+                        <div class="progress-bar"><div class="fill" style="width:92%;background:#34d399;"></div></div>
+                    </div>
+                </div>
+                <div>
+                    <p style="color:#94a3b8;font-size:0.8rem;margin-bottom:0.5rem;">ALGORITHM DETAILS</p>
+                    <p style="font-size:0.85rem;margin-bottom:0.5rem;"><strong>Manhattan Distance:</strong> 5 (out of max 108)</p>
+                    <p style="font-size:0.85rem;margin-bottom:0.5rem;"><strong>Similarity Score:</strong> S = 1/(1+5) = 0.167 → normalized 92.3%</p>
+                    <p style="font-size:0.85rem;margin-bottom:0.5rem;"><strong>Preference Rank:</strong> Alice's #1 choice, Job's #1 choice</p>
+                    <p style="font-size:0.85rem;margin-bottom:0.5rem;"><strong>Blocking Pairs:</strong> None (stable)</p>
+                    <p style="font-size:0.85rem;color:#34d399;margin-top:1rem;">✓ This is a mutually optimal match</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- PAGE: MATCH HISTORY -->
+    <div class="page" id="page-history">
+        <div class="section-header">
+            <div>
+                <h2>📜 Match History</h2>
+                <p>Track all matching runs and decisions</p>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active">All Matches</div>
+            <div class="tab">Accepted</div>
+            <div class="tab">Pending</div>
+            <div class="tab">Rejected</div>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr><th>Run ID</th><th>Date</th><th>Candidates</th><th>Jobs</th><th>Algorithm</th><th>Avg Score</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>#MR-2026-047</code></td>
+                    <td>May 27, 2026</td>
+                    <td>5</td>
+                    <td>5</td>
+                    <td>Gale-Shapley</td>
+                    <td><span class="badge badge-success">88.4%</span></td>
+                    <td><span class="badge badge-success">Stable</span></td>
+                </tr>
+                <tr>
+                    <td><code>#MR-2026-046</code></td>
+                    <td>May 26, 2026</td>
+                    <td>8</td>
+                    <td>8</td>
+                    <td>Gale-Shapley</td>
+                    <td><span class="badge badge-success">85.1%</span></td>
+                    <td><span class="badge badge-success">Stable</span></td>
+                </tr>
+                <tr>
+                    <td><code>#MR-2026-045</code></td>
+                    <td>May 25, 2026</td>
+                    <td>3</td>
+                    <td>5</td>
+                    <td>Gale-Shapley</td>
+                    <td><span class="badge badge-warning">72.3%</span></td>
+                    <td><span class="badge badge-success">Stable</span></td>
+                </tr>
+                <tr>
+                    <td><code>#MR-2026-044</code></td>
+                    <td>May 24, 2026</td>
+                    <td>10</td>
+                    <td>10</td>
+                    <td>Gale-Shapley</td>
+                    <td><span class="badge badge-success">91.7%</span></td>
+                    <td><span class="badge badge-success">Stable</span></td>
+                </tr>
+                <tr>
+                    <td><code>#MR-2026-043</code></td>
+                    <td>May 23, 2026</td>
+                    <td>4</td>
+                    <td>4</td>
+                    <td>Gale-Shapley</td>
+                    <td><span class="badge badge-warning">76.8%</span></td>
+                    <td><span class="badge badge-success">Stable</span></td>
+                </tr>
+                <tr>
+                    <td><code>#MR-2026-042</code></td>
+                    <td>May 22, 2026</td>
+                    <td>6</td>
+                    <td>6</td>
+                    <td>Gale-Shapley</td>
+                    <td><span class="badge badge-success">83.5%</span></td>
+                    <td><span class="badge badge-success">Stable</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- PAGE: ADMIN PANEL -->
+    <div class="page" id="page-admin">
+        <div class="section-header">
+            <div>
+                <h2>🛡️ Admin Control Panel</h2>
+                <p>System management and monitoring</p>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value">1,247</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📄</div>
+                <div class="stat-value">3,891</div>
+                <div class="stat-label">Resumes Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💼</div>
+                <div class="stat-value">892</div>
+                <div class="stat-label">Active Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">99.9%</div>
+                <div class="stat-label">System Uptime</div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="panel">
+                <h3>👥 User Management</h3>
+                <table class="data-table">
+                    <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>
+                        <tr><td>Arjun Singh</td><td><span class="badge badge-info">Admin</span></td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm btn-secondary">Edit</button></td></tr>
+                        <tr><td>Alice Johnson</td><td><span class="badge badge-info">Candidate</span></td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm btn-secondary">Edit</button></td></tr>
+                        <tr><td>TechCorp HR</td><td><span class="badge badge-info">Employer</span></td><td><span class="badge badge-success">Active</span></td><td><button class="btn btn-sm btn-secondary">Edit</button></td></tr>
+                        <tr><td>Bob Smith</td><td><span class="badge badge-info">Candidate</span></td><td><span class="badge badge-warning">Pending</span></td><td><button class="btn btn-sm btn-success">Approve</button></td></tr>
+                        <tr><td>SpamUser123</td><td><span class="badge badge-info">Candidate</span></td><td><span class="badge badge-danger">Flagged</span></td><td><button class="btn btn-sm btn-danger">Ban</button></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel">
+                <h3>📊 System Health</h3>
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>CPU Usage</span><span>34%</span></div>
+                    <div class="progress-bar"><div class="fill" style="width:34%;background:#34d399;"></div></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>Memory Usage</span><span>62%</span></div>
+                    <div class="progress-bar"><div class="fill" style="width:62%;background:#fbbf24;"></div></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>Database Storage</span><span>28%</span></div>
+                    <div class="progress-bar"><div class="fill" style="width:28%;background:#34d399;"></div></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>API Response Time</span><span>142ms avg</span></div>
+                    <div class="progress-bar"><div class="fill" style="width:15%;background:#34d399;"></div></div>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;"><span>LLM API Quota</span><span>67% remaining</span></div>
+                    <div class="progress-bar"><div class="fill" style="width:67%;background:#60a5fa;"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>⚙️ System Configuration</h3>
+            <div class="three-col" style="margin-top:1rem;">
+                <div class="form-group">
+                    <label>LLM Model</label>
+                    <select>
+                        <option>Gemini 2.0 Flash</option>
+                        <option>GPT-4o</option>
+                        <option>Claude 3.5 Sonnet</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Max Concurrent Matches</label>
+                    <input type="number" value="100">
+                </div>
+                <div class="form-group">
+                    <label>Match Score Threshold</label>
+                    <input type="number" value="60" placeholder="Min % to show">
+                </div>
+            </div>
+            <div class="three-col">
+                <div class="form-group">
+                    <label>Data Encryption</label>
+                    <select>
+                        <option selected>AES-256</option>
+                        <option>AES-128</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Session Timeout (min)</label>
+                    <input type="number" value="30">
+                </div>
+                <div class="form-group">
+                    <label>Backup Frequency</label>
+                    <select>
+                        <option>Every 6 hours</option>
+                        <option selected>Every 12 hours</option>
+                        <option>Daily</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:1rem;">
+                <button class="btn btn-success btn-sm" onclick="showToast('Configuration saved successfully')">💾 Save Configuration</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>📋 Recent System Logs</h3>
+            <div style="background:#0f172a;border-radius:8px;padding:1rem;font-family:monospace;font-size:0.8rem;max-height:200px;overflow-y:auto;">
+                <div style="color:#34d399;">[2026-05-27 14:32:01] INFO: Match run #MR-2026-047 completed — 5 stable pairs</div>
+                <div style="color:#94a3b8;">[2026-05-27 14:31:45] INFO: Gale-Shapley algorithm executed in 0.003s</div>
+                <div style="color:#94a3b8;">[2026-05-27 14:31:44] INFO: Preference matrices built for 5×5 pool</div>
+                <div style="color:#94a3b8;">[2026-05-27 14:31:40] INFO: Manhattan Distance computed for 25 pairs</div>
+                <div style="color:#60a5fa;">[2026-05-27 14:31:35] INFO: LLM parsing completed — 10 documents processed</div>
+                <div style="color:#94a3b8;">[2026-05-27 14:30:12] INFO: User login: arjun@example.com</div>
+                <div style="color:#fbbf24;">[2026-05-27 14:28:01] WARN: LLM rate limit approaching (67% quota used)</div>
+                <div style="color:#94a3b8;">[2026-05-27 14:15:00] INFO: Scheduled backup completed successfully</div>
+                <div style="color:#94a3b8;">[2026-05-27 13:45:22] INFO: New user registered: bob@example.com</div>
+                <div style="color:#34d399;">[2026-05-27 12:00:00] INFO: System health check — all services operational</div>
+            </div>
+        </div>
+    </div>
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast"></div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            // Show target page
+            const page = document.getElementById('page-' + pageId);
+            if (page) page.classList.add('active');
+
+            // Update nav active state
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            const navLink = document.getElementById('nav-' + pageId);
+            if (navLink) navLink.classList.add('active');
+
+            // Show/hide navbar (hidden on login/register)
+            const navbar = document.getElementById('navbar');
+            if (pageId === 'login' || pageId === 'register') {
+                navbar.style.display = 'none';
+            } else {
+                navbar.style.display = 'flex';
+            }
+        }
+
+        function doLogin() {
+            showToast('Login successful! Welcome back, Arjun');
+            setTimeout(() => showPage('dashboard'), 500);
+        }
+
+        function simulateUpload() {
+            const parsed = document.getElementById('parsed-resume');
+            parsed.style.display = 'block';
+            showToast('Resume uploaded and parsed successfully!');
+            parsed.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function runSimulatedMatch() {
+            const progress = document.getElementById('matching-progress');
+            progress.style.display = 'block';
+            progress.scrollIntoView({ behavior: 'smooth' });
+
+            setTimeout(() => {
+                showToast('Matching complete! 5 stable pairs found');
+                setTimeout(() => showPage('results'), 800);
+            }, 2000);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = '✓ ' + message;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        // Start on login page
+        showPage('login');
+    </script>
+</body>
+</html>

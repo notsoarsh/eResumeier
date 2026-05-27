@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eResumeier - Intelligent Resume Matching</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .panel {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+        }
+        .panel h2 {
+            color: #60a5fa;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        .panel h2.jobs-title { color: #a78bfa; }
+        .entry {
+            margin-bottom: 1rem;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #334155;
+        }
+        .entry label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #cbd5e1;
+        }
+        .entry input {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #1e293b;
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .entry textarea {
+            width: 100%;
+            height: 120px;
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #1e293b;
+            color: #e2e8f0;
+            resize: vertical;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .btn-row { text-align: center; margin: 2rem 0; }
+        .btn {
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 0.5rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(59,130,246,0.4); }
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        .btn-secondary:hover { background: #475569; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .results {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid #334155;
+            display: none;
+        }
+        .results h2 { color: #34d399; margin-bottom: 1.5rem; text-align: center; }
+        .match-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #334155;
+        }
+        .match-card .candidate { color: #60a5fa; font-weight: 700; font-size: 1.1rem; }
+        .match-card .arrow { color: #34d399; font-size: 1.5rem; }
+        .match-card .job { color: #a78bfa; font-weight: 700; font-size: 1.1rem; }
+        .match-card .score {
+            background: #065f46;
+            color: #34d399;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .stability-badge {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .stable { background: #065f46; color: #34d399; }
+        .unstable { background: #7f1d1d; color: #fca5a5; }
+        .score-matrix {
+            margin-top: 2rem;
+            overflow-x: auto;
+        }
+        .score-matrix h3 { color: #94a3b8; margin-bottom: 1rem; }
+        .score-matrix table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .score-matrix th, .score-matrix td {
+            padding: 0.6rem;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        .score-matrix th { background: #334155; color: #e2e8f0; }
+        .score-matrix td { background: #0f172a; }
+        .highlight { background: #065f46 !important; font-weight: 700; }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #94a3b8;
+            display: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #334155;
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .features-section { margin-top: 2rem; }
+        .features-section h3 { color: #94a3b8; margin-bottom: 1rem; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        .feature-card {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #334155;
+        }
+        .feature-card h4 { margin-bottom: 0.5rem; font-size: 0.95rem; }
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.3rem;
+            font-size: 0.8rem;
+        }
+        .feature-bar .label { width: 120px; color: #94a3b8; }
+        .feature-bar .bar-bg {
+            flex: 1;
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .feature-bar .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .feature-bar .val { width: 30px; text-align: right; color: #cbd5e1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ eResumeier</h1>
+        <p class="subtitle">Intelligent Resume Analyzing & Job Matching Engine</p>
+
+        <div class="grid">
+            <!-- Resumes Panel -->
+            <div class="panel">
+                <h2>📄 Resumes</h2>
+                <div id="resumes-container">
+                    <div class="entry">
+                        <label>Candidate Name</label>
+                        <input type="text" class="resume-name" placeholder="e.g., Alice Johnson" value="Alice Johnson">
+                        <label>Resume Text</label>
+                        <textarea class="resume-text" placeholder="Paste resume text here...">Senior Data Scientist with 6 years of experience. Expert in Python, machine learning, and statistical analysis. Built recommendation systems using TensorFlow and PyTorch. Strong SQL skills for data warehousing. MS in Computer Science from Stanford. Published 3 papers on NLP. Experience with AWS SageMaker. Comfortable presenting findings to stakeholders.</textarea>
+                    </div>
+                    <div class="entry">
+                        <label>Candidate Name</label>
+                        <input type="text" class="resume-name" placeholder="e.g., Bob Smith" value="Bob Smith">
+                        <label>Resume Text</label>
+                        <textarea class="resume-text" placeholder="Paste resume text here...">Frontend Developer with 4 years of experience. Expert in React, TypeScript, and modern CSS. Built responsive web applications serving 1M+ users. Some experience with Node.js backends. Bachelor's in Design. Strong eye for UX and accessibility. Good communicator who bridges design and engineering teams. Familiar with AWS CloudFront and S3 for deployments.</textarea>
+                    </div>
+                    <div class="entry">
+                        <label>Candidate Name</label>
+                        <input type="text" class="resume-name" placeholder="e.g., Carol Davis" value="Carol Williams">
+                        <label>Resume Text</label>
+                        <textarea class="resume-text" placeholder="Paste resume text here...">Cloud Solutions Architect with 10 years in tech. Deep expertise in AWS, GCP, and Azure. Led migration of enterprise systems to cloud. Strong in Python and infrastructure-as-code (Terraform). MBA with focus on technology management. Manages teams of 8-12 engineers. PMP certified. Excellent at stakeholder communication and project planning. Some ML ops experience.</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jobs Panel -->
+            <div class="panel">
+                <h2 class="jobs-title">💼 Job Descriptions</h2>
+                <div id="jobs-container">
+                    <div class="entry">
+                        <label>Job Title</label>
+                        <input type="text" class="job-title" placeholder="e.g., Data Scientist" value="Senior Data Scientist">
+                        <label>Job Description</label>
+                        <textarea class="job-text" placeholder="Paste job description here...">We're looking for a Senior Data Scientist to join our AI team. Requirements: 5+ years experience in data science, expert Python skills, strong machine learning knowledge (deep learning preferred), SQL proficiency, experience with cloud ML platforms. MS or PhD preferred. Must be able to communicate findings to non-technical stakeholders. Experience with NLP is a plus.</textarea>
+                    </div>
+                    <div class="entry">
+                        <label>Job Title</label>
+                        <input type="text" class="job-title" placeholder="e.g., Frontend Engineer" value="Frontend Engineer">
+                        <label>Job Description</label>
+                        <textarea class="job-text" placeholder="Paste job description here...">Seeking a Frontend Engineer to build beautiful, performant web applications. Requirements: 3+ years with React/TypeScript, strong CSS skills, understanding of web accessibility (WCAG), experience with responsive design. Nice to have: some backend experience, familiarity with cloud deployments. Must be a strong communicator who can work closely with designers and product managers.</textarea>
+                    </div>
+                    <div class="entry">
+                        <label>Job Title</label>
+                        <input type="text" class="job-title" placeholder="e.g., Tech Lead" value="Cloud Engineering Manager">
+                        <label>Job Description</label>
+                        <textarea class="job-text" placeholder="Paste job description here...">Cloud Engineering Manager needed to lead our infrastructure team. Requirements: 8+ years experience, deep AWS/GCP expertise, strong leadership and people management skills, PMP or equivalent certification preferred. Must have hands-on experience with Python, Terraform, and CI/CD pipelines. MBA or MS preferred. Excellent project management and communication skills required. Team of 10 direct reports.</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btn-run" onclick="runMatching()">
+                🚀 Run eResumeier
+            </button>
+            <button class="btn btn-secondary" id="btn-demo" onclick="runDemo()">
+                🧪 Run Demo (No API Key)
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing resumes and jobs with AI...</p>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem;">This may take 15-30 seconds</p>
+        </div>
+
+        <div class="results" id="results">
+            <h2>🎯 Stable Matching Results</h2>
+            <div id="matches-list"></div>
+            <div id="stability-badge"></div>
+            <div class="score-matrix" id="score-matrix"></div>
+            <div class="features-section" id="features-section"></div>
+        </div>
+    </div>
+
+    <script>
+        async function runMatching() {
+            const resumes = [];
+            const resumeNames = document.querySelectorAll('.resume-name');
+            const resumeTexts = document.querySelectorAll('.resume-text');
+
+            for (let i = 0; i < resumeNames.length; i++) {
+                const name = resumeNames[i].value.trim();
+                const text = resumeTexts[i].value.trim();
+                if (name && text) {
+                    resumes.push({ name, text });
+                }
+            }
+
+            const jobs = [];
+            const jobTitles = document.querySelectorAll('.job-title');
+            const jobTexts = document.querySelectorAll('.job-text');
+
+            for (let i = 0; i < jobTitles.length; i++) {
+                const title = jobTitles[i].value.trim();
+                const text = jobTexts[i].value.trim();
+                if (title && text) {
+                    jobs.push({ title, text });
+                }
+            }
+
+            if (resumes.length === 0 || jobs.length === 0) {
+                alert('Please provide at least one resume and one job description.');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch('/api/match', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resumes, jobs }),
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'API error');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                alert('Error: ' + error.message + '\n\nMake sure your OPENAI_API_KEY is set in .env');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function runDemo() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/match-demo', { method: 'POST' });
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('results').style.display = show ? 'none' : 'none';
+            document.getElementById('btn-run').disabled = show;
+            document.getElementById('btn-demo').disabled = show;
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+
+            // Matches
+            const matchesHtml = data.matches.map(m => `
+                <div class="match-card">
+                    <span class="candidate">${m.candidate}</span>
+                    <span class="arrow">⟷</span>
+                    <span class="job">${m.job}</span>
+                    <span class="score">${(m.score * 100).toFixed(1)}%</span>
+                </div>
+            `).join('');
+            document.getElementById('matches-list').innerHTML = matchesHtml;
+
+            // Stability
+            const badgeDiv = document.getElementById('stability-badge');
+            if (data.is_stable) {
+                badgeDiv.innerHTML = '<div class="stability-badge stable">✓ Matching is STABLE — No blocking pairs exist</div>';
+            } else {
+                badgeDiv.innerHTML = `<div class="stability-badge unstable">✗ Unstable — ${data.blocking_pairs.length} blocking pair(s) found</div>`;
+            }
+
+            // Score Matrix
+            const candidates = [...new Set(Object.keys(data.all_scores).map(k => k.split('|')[0]))];
+            const jobs = [...new Set(Object.keys(data.all_scores).map(k => k.split('|')[1]))];
+            const matchedPairs = new Set(data.matches.map(m => `${m.candidate}|${m.job}`));
+
+            let tableHtml = '<h3>📊 Full Similarity Score Matrix</h3><table><tr><th></th>';
+            jobs.forEach(j => { tableHtml += `<th>${j}</th>`; });
+            tableHtml += '</tr>';
+
+            candidates.forEach(c => {
+                tableHtml += `<tr><th>${c}</th>`;
+                jobs.forEach(j => {
+                    const key = `${c}|${j}`;
+                    const score = data.all_scores[key];
+                    const isMatch = matchedPairs.has(key);
+                    tableHtml += `<td class="${isMatch ? 'highlight' : ''}">${(score * 100).toFixed(1)}%</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</table>';
+            document.getElementById('score-matrix').innerHTML = tableHtml;
+
+            // Feature Vectors
+            const colors = { candidate: '#60a5fa', job: '#a78bfa' };
+            let featuresHtml = '<h3>🧬 Extracted Feature Vectors</h3><div class="features-grid">';
+
+            for (const [name, features] of Object.entries(data.candidate_features)) {
+                featuresHtml += buildFeatureCard(name, features, colors.candidate);
+            }
+            for (const [name, features] of Object.entries(data.job_features)) {
+                featuresHtml += buildFeatureCard(name, features, colors.job);
+            }
+            featuresHtml += '</div>';
+            document.getElementById('features-section').innerHTML = featuresHtml;
+        }
+
+        function buildFeatureCard(name, features, color) {
+            let bars = '';
+            for (const [key, val] of Object.entries(features)) {
+                const pct = (val / 10) * 100;
+                const label = key.replace(/_/g, ' ');
+                bars += `
+                    <div class="feature-bar">
+                        <span class="label">${label}</span>
+                        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+                        <span class="val">${val}</span>
+                    </div>`;
+            }
+            return `<div class="feature-card"><h4 style="color:${color}">${name}</h4>${bars}</div>`;
+        }
+    </script>
+</body>
+</html>

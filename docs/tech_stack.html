@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eResumeier — Technology Stack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Georgia', serif;
+            background: #ffffff;
+            padding: 2rem;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            color: #222;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            border: 2px solid #e67e22;
+            border-radius: 4px;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .card-header {
+            background: #fdebd0;
+            border-bottom: 2px solid #e67e22;
+            padding: 0.6rem 1rem;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #222;
+        }
+        .card-body {
+            padding: 1rem 1.2rem;
+            background: #fef9f0;
+            min-height: 160px;
+        }
+        .card-body ul {
+            list-style: none;
+            padding: 0;
+        }
+        .card-body li {
+            padding: 0.3rem 0;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .card-body li::before {
+            content: "☐  ";
+            color: #555;
+        }
+        /* Folded corner effect */
+        .card::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(225deg, #fff 50%, #f0c27f 50%);
+            border-bottom-left-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>eResumeier — Technology Stack</h1>
+    <div class="grid">
+        <div class="card">
+            <div class="card-header">Frontend</div>
+            <div class="card-body">
+                <ul>
+                    <li>React / Vue.js</li>
+                    <li>Tailwind CSS</li>
+                    <li>JavaScript / TypeScript</li>
+                    <li>Axios HTTP Client</li>
+                    <li>React Router</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Backend</div>
+            <div class="card-body">
+                <ul>
+                    <li>Python (FastAPI)</li>
+                    <li>REST APIs</li>
+                    <li>JWT Authentication</li>
+                    <li>Bcrypt Hashing</li>
+                    <li>CORS Middleware</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">DevOps</div>
+            <div class="card-body">
+                <ul>
+                    <li>Git / GitHub</li>
+                    <li>VS Code</li>
+                    <li>dotenv Config</li>
+                    <li>Docker</li>
+                    <li>AWS EC2 / S3</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Database</div>
+            <div class="card-body">
+                <ul>
+                    <li>PostgreSQL</li>
+                    <li>SQLAlchemy ORM</li>
+                    <li>Indexed Schemas</li>
+                    <li>Redis Cache</li>
+                    <li>Vector Storage</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Algorithms</div>
+            <div class="card-body">
+                <ul>
+                    <li>Manhattan Distance</li>
+                    <li>Gale-Shapley (Stable Marriage)</li>
+                    <li>Preference Matrix Builder</li>
+                    <li>Stability Verification</li>
+                    <li>Feature Normalization</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">AI / LLM Integration</div>
+            <div class="card-body">
+                <ul>
+                    <li>Google Gemini API</li>
+                    <li>OpenAI GPT (Fallback)</li>
+                    <li>NLP Feature Extraction</li>
+                    <li>Structured JSON Parsing</li>
+                    <li>12D Vectorization</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
