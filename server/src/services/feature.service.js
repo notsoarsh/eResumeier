@@ -14,6 +14,7 @@
  */
 
 const pool = require('../db/pool');
+const redisClient = require('../db/redis');
 const logger = require('../utils/logger');
 
 // 12 Feature Dimensions (matching report and MVP)
@@ -183,6 +184,15 @@ class FeatureService {
        RETURNING vector_id`,
       [entityId, entityType, JSON.stringify(vectorData), JSON.stringify(dimensionalMeta)]
     );
+
+    // Cache in Redis (Report Section 2.2: Redis caching for pre-computed feature vectors)
+    try {
+      if (redisClient.isReady) {
+        await redisClient.setEx(`vector:${entityType}:${entityId}`, 7200, JSON.stringify(vectorData));
+      }
+    } catch (err) {
+      logger.warn(`Redis cache write failed for vector: ${err.message}`);
+    }
 
     logger.info(`Feature vector stored for ${entityType} ${entityId}: [${vectorData.join(', ')}]`);
     return result.rows[0].vector_id;

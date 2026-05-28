@@ -47,10 +47,15 @@ router.get('/results/:runId', authenticate, async (req, res) => {
               r.original_filename AS resume_name,
               r.parsed_json AS resume_parsed,
               jp.title AS job_title,
-              jp.company AS job_company
+              jp.company AS job_company,
+              jp.requirements_json AS job_parsed,
+              fv_r.vector_data AS resume_vector,
+              fv_j.vector_data AS job_vector
        FROM match_results mr
        JOIN resumes r ON r.resume_id = mr.resume_id
        JOIN job_postings jp ON jp.job_id = mr.job_id
+       LEFT JOIN feature_vectors fv_r ON fv_r.entity_id = mr.resume_id AND fv_r.entity_type = 'resume'
+       LEFT JOIN feature_vectors fv_j ON fv_j.entity_id = mr.job_id AND fv_j.entity_type = 'job'
        WHERE mr.run_id = $1
        ORDER BY mr.rank ASC`,
       [req.params.runId]

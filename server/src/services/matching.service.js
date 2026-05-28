@@ -18,7 +18,11 @@
  */
 
 const pool = require('../db/pool');
+const redisClient = require('../db/redis');
 const logger = require('../utils/logger');
+
+// Configurable threshold (Report Section 3.4-IV)
+const SCORE_THRESHOLD = 0.05; // Minimum similarity to enter matching pool
 
 class MatchingService {
   /**
@@ -332,8 +336,26 @@ class MatchingService {
     // Step 4: Compute all pairwise scores
     const { scores, candidateIds: cIds, jobIds: jIds } = this.computeAllScores(candidates, jobs);
 
-    // Step 5: Build preference matrices
-    const { candidatePrefs, jobPrefs } = this.buildPreferenceMatrices(scores, cIds, jIds);
+    // Step 4b: Apply score threshold (Report Section 3.4-IV)
+    // "only candidates whose similarity score exceeds a configurable threshold
+    //  are admitted to the Stable Marriage pool"
+    const filteredCandidates = cIds.filter(cId => {
+      const maxScore = Math.max(...jIds.map(jId => scores[`${cId}|${jId}`]));
+      return maxScore >= SCORE_THRESHOLD;
+    });
+    const filteredJobs = jIds.filter(jId => {
+      const maxScore = Math.max(...filteredCandidates.map(cId => scores[`${cId}|${jId}`]));
+      return maxScore >= SCORE_THRESHOLD;
+    });
+
+    if (filteredCandidates.length === 0 || filteredJobs.length === 0) {
+      throw new Error('No candidates/jobs passed the similarity threshold. Scores too low for matching.');
+    }
+
+    logger.info(`Threshold filter: ${cIds.length} candidates → ${filteredCandidates.length}, ${jIds.length} jobs → ${filteredJobs.length}`);
+
+    // Step 5: Build preference matrices (using filtered pools)
+    const { candidatePrefs, jobPrefs } = this.buildPreferenceMatrices(scores, filteredCandidates, filteredJobs);
 
     // Step 6: Run Gale-Shapley
     const { matches, proposalCount } = this.runGaleShapley(candidatePrefs, jobPrefs);
@@ -347,12 +369,23 @@ class MatchingService {
       ? matchEntries.reduce((sum, [c, j]) => sum + scores[`${c}|${j}`], 0) / matchEntries.length
       : 0;
 
+    // Step 8b: Cache results in Redis (Report Section 2.2)
+    try {
+      if (redisClient.isReady) {
+        await redisClient.setEx('match:latest_scores', 3600, JSON.stringify(scores));
+        await redisClient.setEx('match:latest_results', 3600, JSON.stringify(matchEntries));
+        logger.info('Match results cached in Redis (TTL: 1 hour)');
+      }
+    } catch (cacheErr) {
+      logger.warn(`Redis cache write failed: ${cacheErr.message}`);
+    }
+
     // Step 9: Create match run record
     const runResult = await pool.query(
       `INSERT INTO match_runs (initiated_by, algorithm, distance_metric, candidate_count, job_count, avg_score, is_stable)
        VALUES ($1, 'gale-shapley', 'manhattan', $2, $3, $4, $5)
        RETURNING run_id`,
-      [initiatedBy, cIds.length, jIds.length, avgScore.toFixed(4), isStable]
+      [initiatedBy, filteredCandidates.length, filteredJobs.length, avgScore.toFixed(4), isStable]
     );
     const runId = runResult.rows[0].run_id;
 

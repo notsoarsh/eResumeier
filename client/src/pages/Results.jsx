@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api';
 import { PageLoader } from '../components/Loader';
+import RadarChartComponent from '../components/RadarChart';
 import './Pages.css';
 
 function Results() {
@@ -112,6 +113,22 @@ function Results() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Radar Chart: Report Section 5.4 */}
+      {matches.length > 0 && matches[0].resume_vector && (
+        <div className="panel">
+          <h3>🕸️ Dimensional Score Comparison (Top Match)</h3>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            Radar chart comparing candidate feature vector vs job requirements across all 12 dimensions
+          </p>
+          <RadarChartComponent
+            candidateVector={matches[0].resume_vector}
+            jobVector={matches[0].job_vector}
+            candidateName={matches[0].resume_name}
+            jobName={matches[0].job_title}
+          />
         </div>
       )}
 

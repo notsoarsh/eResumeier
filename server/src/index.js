@@ -10,6 +10,7 @@ const resumeRoutes = require('./routes/resume.routes');
 const jobRoutes = require('./routes/job.routes');
 const matchRoutes = require('./routes/match.routes');
 const featureRoutes = require('./routes/feature.routes');
+const feedbackRoutes = require('./routes/feedback.routes');
 const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
@@ -29,6 +30,7 @@ app.use('/api/resumes', resumeRoutes);  // Resume Parser Service
 app.use('/api/jobs', jobRoutes);        // Job Posting Management
 app.use('/api/match', matchRoutes);     // Matching Engine Service
 app.use('/api/features', featureRoutes); // Feature Extraction Service
+app.use('/api/feedback', feedbackRoutes); // Feedback for algorithm improvement
 app.use('/api/admin', adminRoutes);     // Admin Control Panel
 
 // Health check
