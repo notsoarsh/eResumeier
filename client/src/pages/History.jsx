@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { PageLoader } from '../components/Loader';
 import './Pages.css';
 
 function History() {
   const [runs, setRuns] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => { loadHistory(); }, []);
@@ -14,6 +16,7 @@ function History() {
       const res = await api.get('/match/history');
       setRuns(res.data.runs || []);
     } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -25,7 +28,9 @@ function History() {
         </div>
       </div>
 
-      {runs.length > 0 ? (
+      {loading && <PageLoader message="Loading match history..." />}
+
+      {!loading && runs.length > 0 ? (
         <table className="data-table">
           <thead>
             <tr><th>Run ID</th><th>Date</th><th>Candidates</th><th>Jobs</th><th>Algorithm</th><th>Avg Score</th><th>Status</th><th>Action</th></tr>
@@ -45,7 +50,7 @@ function History() {
             ))}
           </tbody>
         </table>
-      ) : (
+      ) : !loading && (
         <div className="panel"><p style={{ color: '#94a3b8' }}>No matching runs yet. Go to the Matching page to run the algorithm.</p></div>
       )}
     </div>

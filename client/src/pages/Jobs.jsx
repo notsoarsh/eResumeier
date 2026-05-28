@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
+import { PageLoader } from '../components/Loader';
 import './Pages.css';
 
 function Jobs({ user }) {
@@ -7,14 +8,17 @@ function Jobs({ user }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', company: '', description: '', location: '', salaryRange: '' });
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadJobs(); }, []);
 
   const loadJobs = async () => {
+    setLoading(true);
     try {
       const res = await api.get('/jobs');
       setJobs(res.data.jobs || []);
     } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
   const handleCreate = async (e) => {
@@ -78,7 +82,9 @@ function Jobs({ user }) {
         </div>
       )}
 
-      {jobs.map(job => (
+      {loading && <PageLoader message="Loading jobs..." />}
+
+      {!loading && jobs.map(job => (
         <div className="job-card" key={job.job_id}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
             <div>
@@ -95,7 +101,7 @@ function Jobs({ user }) {
         </div>
       ))}
 
-      {jobs.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>No jobs posted yet.</p>}
+      {!loading && jobs.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>No jobs posted yet.</p>}
     </div>
   );
 }

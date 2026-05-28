@@ -1,157 +1,68 @@
-/**
- * Matching Engine Service
- * Report Section 3.1 (II): Accepts batch requests containing candidate and job
- * feature vectors. Computes pairwise Manhattan Distance similarity scores and,
- * on demand, executes the Gale-Shapley algorithm over the full preference-list
- * matrix to return a globally stable assignment.
- *
- * Report Section 3.4 (III): Manhattan Distance Similarity Formula
- * S(R, J) = 1 / (1 + Σ |Ri − Ji|) for i = 1 to n
- *
- * Report Section 3.4 (IV): Stable Marriage Algorithm (Gale-Shapley)
- * Candidate-proposing variant. Uses FIFO queue for proposals and hash map
- * for O(1) preference comparison.
- *
- * Report Section 6.3: Two primary internal functions:
- * - computeSimilarity(resumeVector, jobVector, weights)
- * - runStableMarriage(candidatePreferences, employerPreferences)
- */
+// Matching Engine — Manhattan Distance scoring + Gale-Shapley stable matching
 
 const pool = require('../db/pool');
 const redisClient = require('../db/redis');
 const logger = require('../utils/logger');
 
-// Configurable threshold (Report Section 3.4-IV)
-const SCORE_THRESHOLD = 0.05; // Minimum similarity to enter matching pool
+// Minimum similarity to enter matching pool
+const SCORE_THRESHOLD = 0.03;
 
 class MatchingService {
-  /**
-   * Compute Manhattan Distance similarity score between two vectors.
-   * Report Section 3.4 (III): S(R, J) = 1 / (1 + Σ |Ri − Ji|) for i = 1 to n
-   *
-   * Report Section 6.3: Single-pass summation loop for O(n) time complexity per pair.
-   * Dimensional weights can be applied as multipliers within the summation.
-   *
-   * @param {number[]} vectorA - Resume feature vector
-   * @param {number[]} vectorB - Job feature vector
-   * @param {number[]|null} weights - Optional dimensional weights
-   * @returns {number} Similarity score in (0, 1]
-   */
+  // S(R, J) = 1 / (1 + Σ|Ri - Ji|)
   computeSimilarity(vectorA, vectorB, weights = null) {
-    if (vectorA.length !== vectorB.length) {
-      throw new Error(`Vector length mismatch: ${vectorA.length} vs ${vectorB.length}`);
-    }
-
-    let weightedDistance = 0;
-
+    if (vectorA.length !== vectorB.length) throw new Error('Vector length mismatch');
+    let distance = 0;
     for (let i = 0; i < vectorA.length; i++) {
-      const diff = Math.abs(vectorA[i] - vectorB[i]);
-      const weight = weights ? weights[i] : 1;
-      weightedDistance += diff * weight;
+      distance += Math.abs(vectorA[i] - vectorB[i]) * (weights ? weights[i] : 1);
     }
-
-    return 1 / (1 + weightedDistance);
+    return 1 / (1 + distance);
   }
 
-  /**
-   * Compute pairwise similarity scores for all candidate-job combinations.
-   * Returns an n×m score matrix.
-   *
-   * @param {Object} candidates - { candidateId: vector[] }
-   * @param {Object} jobs - { jobId: vector[] }
-   * @param {number[]|null} weights - Optional dimensional weights
-   * @returns {Object} { scores: { "candId|jobId": score }, matrix: [...] }
-   */
+  // Compute scores for all candidate-job pairs
   computeAllScores(candidates, jobs, weights = null) {
     const scores = {};
     const candidateIds = Object.keys(candidates);
     const jobIds = Object.keys(jobs);
 
-    for (const candId of candidateIds) {
-      for (const jobId of jobIds) {
-        const score = this.computeSimilarity(candidates[candId], jobs[jobId], weights);
-        scores[`${candId}|${jobId}`] = score;
+    for (const cId of candidateIds) {
+      for (const jId of jobIds) {
+        scores[`${cId}|${jId}`] = this.computeSimilarity(candidates[cId], jobs[jId], weights);
       }
     }
-
     return { scores, candidateIds, jobIds };
   }
 
-  /**
-   * Build preference matrices from similarity scores.
-   * Each candidate ranks all jobs by descending score.
-   * Each job ranks all candidates by descending score.
-   *
-   * @param {Object} scores - { "candId|jobId": score }
-   * @param {string[]} candidateIds
-   * @param {string[]} jobIds
-   * @returns {{ candidatePrefs: Object, jobPrefs: Object }}
-   */
+  // Build ranked preference lists from scores
   buildPreferenceMatrices(scores, candidateIds, jobIds) {
-    // Candidate preferences: each candidate ranks jobs best-to-worst
     const candidatePrefs = {};
-    for (const candId of candidateIds) {
-      const ranked = [...jobIds].sort((a, b) => {
-        return scores[`${candId}|${b}`] - scores[`${candId}|${a}`];
-      });
-      candidatePrefs[candId] = ranked;
+    for (const cId of candidateIds) {
+      candidatePrefs[cId] = [...jobIds].sort((a, b) => scores[`${cId}|${b}`] - scores[`${cId}|${a}`]);
     }
 
-    // Job preferences: each job ranks candidates best-to-worst
     const jobPrefs = {};
-    for (const jobId of jobIds) {
-      const ranked = [...candidateIds].sort((a, b) => {
-        return scores[`${b}|${jobId}`] - scores[`${a}|${jobId}`];
-      });
-      jobPrefs[jobId] = ranked;
+    for (const jId of jobIds) {
+      jobPrefs[jId] = [...candidateIds].sort((a, b) => scores[`${b}|${jId}`] - scores[`${a}|${jId}`]);
     }
 
     return { candidatePrefs, jobPrefs };
   }
 
-  /**
-   * Run the Gale-Shapley Stable Marriage Algorithm (candidate-proposing).
-   *
-   * Report Section 3.4 (IV):
-   * 1. Initialise all candidates and employers as unmatched.
-   * 2. Generate preference lists based on similarity score rankings.
-   * 3. While any unmatched candidate with a non-exhausted preference list exists:
-   *    a. Select the first unmatched candidate from the queue.
-   *    b. Propose to highest-ranked job not yet proposed to.
-   *    c. Job accepts if unmatched, or if proposer preferred over current match.
-   *    d. If rejected, candidate advances to next preference.
-   * 4. Terminates when no unmatched candidate with outstanding proposal remains.
-   *
-   * Report Section 6.3: Uses FIFO queue for candidate proposals and hash map
-   * tracking each employer's current tentative match and their ranked position
-   * (enabling O(1) comparison in the 'prefer over current' check).
-   *
-   * @param {Object} candidatePrefs - { candId: [jobId, jobId, ...] }
-   * @param {Object} jobPrefs - { jobId: [candId, candId, ...] }
-   * @returns {Object} { matches: { candId: jobId }, proposalCount: number }
-   */
+  // Gale-Shapley candidate-proposing stable marriage
   runGaleShapley(candidatePrefs, jobPrefs) {
     const candidateIds = Object.keys(candidatePrefs);
     const jobIds = Object.keys(jobPrefs);
 
-    // Pre-compute job preference rankings for O(1) comparison
-    // jobRank[jobId][candId] = rank (lower is better)
+    // Pre-compute job rankings for O(1) comparison
     const jobRank = {};
-    for (const jobId of jobIds) {
-      jobRank[jobId] = {};
-      jobPrefs[jobId].forEach((candId, index) => {
-        jobRank[jobId][candId] = index;
-      });
+    for (const jId of jobIds) {
+      jobRank[jId] = {};
+      jobPrefs[jId].forEach((cId, idx) => { jobRank[jId][cId] = idx; });
     }
 
-    // Track which proposal index each candidate is at
     const nextProposal = {};
     candidateIds.forEach(id => { nextProposal[id] = 0; });
 
-    // Free candidates queue (FIFO)
     const freeCandidates = [...candidateIds];
-
-    // Current engagements: job -> candidate
     const jobEngagedTo = {};
     jobIds.forEach(id => { jobEngagedTo[id] = null; });
 
@@ -160,248 +71,138 @@ class MatchingService {
     while (freeCandidates.length > 0) {
       const candidate = freeCandidates.shift();
       const prefs = candidatePrefs[candidate];
+      const idx = nextProposal[candidate];
 
-      // Get next job this candidate hasn't proposed to
-      const proposalIdx = nextProposal[candidate];
-      if (proposalIdx >= prefs.length) {
-        // Candidate has exhausted all options
-        continue;
-      }
+      if (idx >= prefs.length) continue;
 
-      const job = prefs[proposalIdx];
-      nextProposal[candidate] = proposalIdx + 1;
+      const job = prefs[idx];
+      nextProposal[candidate] = idx + 1;
       proposalCount++;
 
-      const currentPartner = jobEngagedTo[job];
+      const current = jobEngagedTo[job];
 
-      if (currentPartner === null) {
-        // Job is free, accept proposal
+      if (current === null) {
         jobEngagedTo[job] = candidate;
+      } else if (jobRank[job][candidate] < jobRank[job][current]) {
+        jobEngagedTo[job] = candidate;
+        freeCandidates.push(current);
       } else {
-        // Job compares current partner vs new proposer using pre-computed ranks
-        const currentRank = jobRank[job][currentPartner];
-        const proposerRank = jobRank[job][candidate];
-
-        if (proposerRank < currentRank) {
-          // Job prefers new candidate over current partner
-          jobEngagedTo[job] = candidate;
-          // Current partner becomes free again
-          freeCandidates.push(currentPartner);
-        } else {
-          // Job rejects new candidate
-          freeCandidates.push(candidate);
-        }
+        freeCandidates.push(candidate);
       }
     }
 
-    // Build candidate -> job mapping
     const matches = {};
-    for (const [jobId, candId] of Object.entries(jobEngagedTo)) {
-      if (candId !== null) {
-        matches[candId] = jobId;
-      }
+    for (const [jId, cId] of Object.entries(jobEngagedTo)) {
+      if (cId !== null) matches[cId] = jId;
     }
 
     return { matches, proposalCount };
   }
 
-  /**
-   * Verify that a matching is stable by checking for blocking pairs.
-   *
-   * A blocking pair (c, j) exists if:
-   * - c prefers j over their current match, AND
-   * - j prefers c over their current match
-   *
-   * Report Section 6.3: Proof-of-stability log that records the count of
-   * considered proposals, confirming the absence of blocking pairs.
-   *
-   * @param {Object} matches - { candId: jobId }
-   * @param {Object} candidatePrefs - { candId: [jobId, ...] }
-   * @param {Object} jobPrefs - { jobId: [candId, ...] }
-   * @returns {{ isStable: boolean, blockingPairs: Array }}
-   */
+  // Check for blocking pairs
   verifyStability(matches, candidatePrefs, jobPrefs) {
     const blockingPairs = [];
-
-    // Build reverse mapping: job -> candidate
     const jobToCandidate = {};
-    for (const [candId, jobId] of Object.entries(matches)) {
-      jobToCandidate[jobId] = candId;
-    }
+    for (const [cId, jId] of Object.entries(matches)) { jobToCandidate[jId] = cId; }
 
     for (const [candidate, matchedJob] of Object.entries(matches)) {
-      const candPrefs = candidatePrefs[candidate];
-      const matchedJobRank = candPrefs.indexOf(matchedJob);
+      const cPrefs = candidatePrefs[candidate];
+      const matchedRank = cPrefs.indexOf(matchedJob);
 
-      // Check all jobs this candidate prefers over their match
-      for (let i = 0; i < matchedJobRank; i++) {
-        const preferredJob = candPrefs[i];
+      for (let i = 0; i < matchedRank; i++) {
+        const preferredJob = cPrefs[i];
         const rival = jobToCandidate[preferredJob];
-
         if (!rival) continue;
 
-        // Does this job prefer our candidate over its current match?
-        const jobPrefList = jobPrefs[preferredJob];
-        const candidateRankAtJob = jobPrefList.indexOf(candidate);
-        const rivalRankAtJob = jobPrefList.indexOf(rival);
-
-        if (candidateRankAtJob < rivalRankAtJob) {
+        const jPrefs = jobPrefs[preferredJob];
+        if (jPrefs.indexOf(candidate) < jPrefs.indexOf(rival)) {
           blockingPairs.push({ candidate, job: preferredJob });
         }
       }
     }
 
-    return {
-      isStable: blockingPairs.length === 0,
-      blockingPairs,
-    };
+    return { isStable: blockingPairs.length === 0, blockingPairs };
   }
 
-  /**
-   * Classify match into tier based on similarity score.
-   * Report Section 5.2: A: 80-100%, B: 60-79%, C: 40-59%
-   */
+  // Tier classification: A (80%+), B (60-79%), C (<60%)
   classifyTier(score) {
     const pct = score * 100;
     if (pct >= 80) return 'A';
     if (pct >= 60) return 'B';
-    if (pct >= 40) return 'C';
-    return 'C'; // Below 40% still gets C
+    return 'C';
   }
 
-  /**
-   * Full matching pipeline: fetch vectors -> score -> match -> store results
-   *
-   * @param {string} initiatedBy - User ID who triggered the run
-   * @param {string[]|null} candidateIds - Specific resume IDs (null = all parsed)
-   * @param {string[]|null} jobIds - Specific job IDs (null = all open)
-   * @returns {Object} Full match run results
-   */
+  // Full matching pipeline
   async runFullMatch(initiatedBy, candidateIds = null, jobIds = null) {
-    // Step 1: Fetch candidate vectors
-    let candidateQuery = `
-      SELECT fv.entity_id, fv.vector_data, r.user_id
-      FROM feature_vectors fv
-      JOIN resumes r ON r.resume_id = fv.entity_id
-      WHERE fv.entity_type = 'resume'
-    `;
-    const candidateParams = [];
+    // Fetch candidate vectors
+    let cQuery = `SELECT fv.entity_id, fv.vector_data, r.user_id FROM feature_vectors fv JOIN resumes r ON r.resume_id = fv.entity_id WHERE fv.entity_type = 'resume'`;
+    const cParams = [];
+    if (candidateIds?.length) { cQuery += ` AND fv.entity_id = ANY($1)`; cParams.push(candidateIds); }
+    const candResult = await pool.query(cQuery, cParams);
+    if (candResult.rows.length === 0) throw new Error('No candidate vectors found. Upload and parse resumes first.');
 
-    if (candidateIds && candidateIds.length > 0) {
-      candidateQuery += ` AND fv.entity_id = ANY($1)`;
-      candidateParams.push(candidateIds);
-    }
+    // Fetch job vectors
+    let jQuery = `SELECT fv.entity_id, fv.vector_data, jp.title, jp.company FROM feature_vectors fv JOIN job_postings jp ON jp.job_id = fv.entity_id WHERE fv.entity_type = 'job' AND jp.status = 'open'`;
+    const jParams = [];
+    if (jobIds?.length) { jQuery += ` AND fv.entity_id = ANY($1)`; jParams.push(jobIds); }
+    const jobResult = await pool.query(jQuery, jParams);
+    if (jobResult.rows.length === 0) throw new Error('No job vectors found. Create and parse job postings first.');
 
-    const candResult = await pool.query(candidateQuery, candidateParams);
+    // Build vector maps
+    const candidates = {}, candidateMeta = {};
+    for (const row of candResult.rows) { candidates[row.entity_id] = row.vector_data; candidateMeta[row.entity_id] = { userId: row.user_id }; }
 
-    if (candResult.rows.length === 0) {
-      throw new Error('No candidate vectors found. Upload and parse resumes first.');
-    }
+    const jobs = {}, jobMeta = {};
+    for (const row of jobResult.rows) { jobs[row.entity_id] = row.vector_data; jobMeta[row.entity_id] = { title: row.title, company: row.company }; }
 
-    // Step 2: Fetch job vectors
-    let jobQuery = `
-      SELECT fv.entity_id, fv.vector_data, jp.title, jp.company
-      FROM feature_vectors fv
-      JOIN job_postings jp ON jp.job_id = fv.entity_id
-      WHERE fv.entity_type = 'job' AND jp.status = 'open'
-    `;
-    const jobParams = [];
-
-    if (jobIds && jobIds.length > 0) {
-      jobQuery += ` AND fv.entity_id = ANY($1)`;
-      jobParams.push(jobIds);
-    }
-
-    const jobResult = await pool.query(jobQuery, jobParams);
-
-    if (jobResult.rows.length === 0) {
-      throw new Error('No job vectors found. Create and parse job postings first.');
-    }
-
-    // Step 3: Build vector maps
-    const candidates = {};
-    const candidateMeta = {};
-    for (const row of candResult.rows) {
-      candidates[row.entity_id] = row.vector_data;
-      candidateMeta[row.entity_id] = { userId: row.user_id };
-    }
-
-    const jobs = {};
-    const jobMeta = {};
-    for (const row of jobResult.rows) {
-      jobs[row.entity_id] = row.vector_data;
-      jobMeta[row.entity_id] = { title: row.title, company: row.company };
-    }
-
-    // Step 4: Compute all pairwise scores
+    // Compute all pairwise scores
     const { scores, candidateIds: cIds, jobIds: jIds } = this.computeAllScores(candidates, jobs);
 
-    // Step 4b: Apply score threshold (Report Section 3.4-IV)
-    // "only candidates whose similarity score exceeds a configurable threshold
-    //  are admitted to the Stable Marriage pool"
-    const filteredCandidates = cIds.filter(cId => {
-      const maxScore = Math.max(...jIds.map(jId => scores[`${cId}|${jId}`]));
-      return maxScore >= SCORE_THRESHOLD;
-    });
-    const filteredJobs = jIds.filter(jId => {
-      const maxScore = Math.max(...filteredCandidates.map(cId => scores[`${cId}|${jId}`]));
-      return maxScore >= SCORE_THRESHOLD;
-    });
+    // Apply threshold filter
+    const filteredCandidates = cIds.filter(cId => Math.max(...jIds.map(jId => scores[`${cId}|${jId}`])) >= SCORE_THRESHOLD);
+    const filteredJobs = jIds.filter(jId => Math.max(...filteredCandidates.map(cId => scores[`${cId}|${jId}`])) >= SCORE_THRESHOLD);
 
     if (filteredCandidates.length === 0 || filteredJobs.length === 0) {
-      throw new Error('No candidates/jobs passed the similarity threshold. Scores too low for matching.');
+      throw new Error('No candidates/jobs passed the similarity threshold.');
     }
 
     logger.info(`Threshold filter: ${cIds.length} candidates → ${filteredCandidates.length}, ${jIds.length} jobs → ${filteredJobs.length}`);
 
-    // Step 5: Build preference matrices (using filtered pools)
+    // Build preferences and run algorithm
     const { candidatePrefs, jobPrefs } = this.buildPreferenceMatrices(scores, filteredCandidates, filteredJobs);
-
-    // Step 6: Run Gale-Shapley
     const { matches, proposalCount } = this.runGaleShapley(candidatePrefs, jobPrefs);
-
-    // Step 7: Verify stability
     const { isStable, blockingPairs } = this.verifyStability(matches, candidatePrefs, jobPrefs);
 
-    // Step 8: Compute average score
+    // Compute average score
     const matchEntries = Object.entries(matches);
     const avgScore = matchEntries.length > 0
-      ? matchEntries.reduce((sum, [c, j]) => sum + scores[`${c}|${j}`], 0) / matchEntries.length
-      : 0;
+      ? matchEntries.reduce((sum, [c, j]) => sum + scores[`${c}|${j}`], 0) / matchEntries.length : 0;
 
-    // Step 8b: Cache results in Redis (Report Section 2.2)
+    // Cache in Redis
     try {
       if (redisClient.isReady) {
         await redisClient.setEx('match:latest_scores', 3600, JSON.stringify(scores));
         await redisClient.setEx('match:latest_results', 3600, JSON.stringify(matchEntries));
-        logger.info('Match results cached in Redis (TTL: 1 hour)');
+        logger.info('Results cached in Redis');
       }
-    } catch (cacheErr) {
-      logger.warn(`Redis cache write failed: ${cacheErr.message}`);
-    }
+    } catch (err) { logger.warn(`Redis cache failed: ${err.message}`); }
 
-    // Step 9: Create match run record
+    // Store match run
     const runResult = await pool.query(
       `INSERT INTO match_runs (initiated_by, algorithm, distance_metric, candidate_count, job_count, avg_score, is_stable)
-       VALUES ($1, 'gale-shapley', 'manhattan', $2, $3, $4, $5)
-       RETURNING run_id`,
+       VALUES ($1, 'gale-shapley', 'manhattan', $2, $3, $4, $5) RETURNING run_id`,
       [initiatedBy, filteredCandidates.length, filteredJobs.length, avgScore.toFixed(4), isStable]
     );
     const runId = runResult.rows[0].run_id;
 
-    // Step 10: Store individual match results
+    // Store individual match results
     const matchResults = [];
+    const sortedMatches = matchEntries.sort((a, b) => scores[`${b[0]}|${b[1]}`] - scores[`${a[0]}|${a[1]}`]);
     let rank = 1;
-
-    // Sort matches by score descending for ranking
-    const sortedMatches = matchEntries.sort((a, b) => {
-      return scores[`${b[0]}|${b[1]}`] - scores[`${a[0]}|${a[1]}`];
-    });
 
     for (const [candId, jobId] of sortedMatches) {
       const score = scores[`${candId}|${jobId}`];
       const tier = this.classifyTier(score);
-
       const justification = {
         score: parseFloat(score.toFixed(4)),
         percentage: parseFloat((score * 100).toFixed(1)),
@@ -418,37 +219,13 @@ class MatchingService {
         [runId, candId, jobId, score.toFixed(4), rank, tier, JSON.stringify(justification), true]
       );
 
-      matchResults.push({
-        rank,
-        candidateId: candId,
-        jobId,
-        jobTitle: jobMeta[jobId]?.title,
-        jobCompany: jobMeta[jobId]?.company,
-        score: parseFloat(score.toFixed(4)),
-        percentage: parseFloat((score * 100).toFixed(1)),
-        tier,
-      });
-
+      matchResults.push({ rank, candidateId: candId, jobId, jobTitle: jobMeta[jobId]?.title, jobCompany: jobMeta[jobId]?.company, score: parseFloat(score.toFixed(4)), percentage: parseFloat((score * 100).toFixed(1)), tier });
       rank++;
     }
 
     logger.info(`Match run ${runId}: ${matchEntries.length} pairs, avg ${(avgScore * 100).toFixed(1)}%, stable: ${isStable}`);
 
-    return {
-      runId,
-      algorithm: 'gale-shapley',
-      distanceMetric: 'manhattan',
-      candidateCount: cIds.length,
-      jobCount: jIds.length,
-      matchCount: matchEntries.length,
-      avgScore: parseFloat(avgScore.toFixed(4)),
-      avgPercentage: parseFloat((avgScore * 100).toFixed(1)),
-      isStable,
-      blockingPairs: blockingPairs.length,
-      proposalCount,
-      matches: matchResults,
-      allScores: scores,
-    };
+    return { runId, algorithm: 'gale-shapley', distanceMetric: 'manhattan', candidateCount: filteredCandidates.length, jobCount: filteredJobs.length, matchCount: matchEntries.length, avgScore: parseFloat(avgScore.toFixed(4)), avgPercentage: parseFloat((avgScore * 100).toFixed(1)), isStable, blockingPairs: blockingPairs.length, proposalCount, matches: matchResults, allScores: scores };
   }
 }
 

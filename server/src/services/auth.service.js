@@ -1,13 +1,8 @@
-/**
- * Authentication & Authorization Service
- * Report Section 3.1 (II): Manages user identity, credential validation,
- * JWT issuance, and role-based access enforcement for all protected API endpoints.
- */
+// Authentication Service — registration, login, JWT token management
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
-const logger = require('../utils/logger');
 
 const SALT_ROUNDS = 12;
 
@@ -31,16 +26,11 @@ class AuthService {
       [email]
     );
 
-    if (result.rows.length === 0) {
-      throw new Error('Invalid email or password');
-    }
+    if (result.rows.length === 0) throw new Error('Invalid email or password');
 
     const user = result.rows[0];
     const isValid = await bcrypt.compare(password, user.password_hash);
-
-    if (!isValid) {
-      throw new Error('Invalid email or password');
-    }
+    if (!isValid) throw new Error('Invalid email or password');
 
     const token = jwt.sign(
       { userId: user.user_id, email: user.email, role: user.role },
