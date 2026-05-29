@@ -132,7 +132,23 @@ router.post('/parse-text', authenticate, authorize('candidate', 'admin'), async 
   }
 });
 
-// GET /api/resumes - List user's resumes
+// GET /api/resumes/all - Admin: list ALL resumes across all users
+router.get('/all', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT r.*, u.first_name, u.last_name, u.email
+       FROM resumes r
+       JOIN users u ON u.user_id = r.user_id
+       ORDER BY r.created_at DESC`
+    );
+    res.json({ resumes: result.rows });
+  } catch (err) {
+    logger.error(`Admin list resumes error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to fetch resumes.' });
+  }
+});
+
+// GET /api/resumes - List user's own resumes
 router.get('/', authenticate, async (req, res) => {
   try {
     const result = await pool.query(

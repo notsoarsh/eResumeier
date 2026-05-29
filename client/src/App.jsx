@@ -51,7 +51,7 @@ function App() {
         <Route path="/results/:runId" element={<Results user={user} />} />
         <Route path="/results" element={<Results user={user} />} />
 
-        {/* Candidate & Admin: resume upload */}
+        {/* Candidate & Admin: resume section */}
         {(user.role === 'candidate' || user.role === 'admin') && (
           <Route path="/resumes" element={<ResumeUpload user={user} />} />
         )}
