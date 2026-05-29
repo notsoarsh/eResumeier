@@ -220,26 +220,68 @@ router.delete('/:id', authenticate, authorize('employer', 'admin'), async (req, 
 
 /**
  * Background helper: Parse job description with LLM and compute feature vector
+ * Falls back to keyword-based extraction if LLM fails
  */
 async function parseAndVectorizeJob(jobId, description) {
   try {
-    // Parse with LLM
+    // Try LLM parsing first
     const parsedJson = await parserService.parseWithLLM(description, 'job description');
 
-    // Store parsed requirements
     await pool.query(
       'UPDATE job_postings SET requirements_json = $1, updated_at = NOW() WHERE job_id = $2',
       [JSON.stringify(parsedJson), jobId]
     );
 
-    // Compute and store feature vector
     await featureService.computeAndStore(jobId, 'job', parsedJson);
-
-    logger.info(`Job ${jobId} parsed and vectorized successfully`);
+    logger.info(`Job ${jobId} parsed and vectorized via LLM`);
   } catch (err) {
-    logger.error(`Job parse/vectorize failed for ${jobId}: ${err.message}`);
-    // Non-fatal: job is still created, just without parsed requirements
+    logger.warn(`LLM failed for job ${jobId}, using keyword fallback: ${err.message}`);
+
+    // Fallback: extract skills from raw description using keyword matching
+    const words = description.toLowerCase();
+    const fallbackJson = {
+      skills: extractSkillsFromText(words),
+      experience_years: extractYearsFromText(words),
+      education_level: extractEducationFromText(words),
+      certifications: [],
+      domain_expertise: [],
+      preferred_roles: [],
+      summary: description.substring(0, 100),
+    };
+
+    await pool.query(
+      'UPDATE job_postings SET requirements_json = $1, updated_at = NOW() WHERE job_id = $2',
+      [JSON.stringify(fallbackJson), jobId]
+    );
+
+    await featureService.computeAndStore(jobId, 'job', fallbackJson);
+    logger.info(`Job ${jobId} vectorized via keyword fallback`);
   }
+}
+
+// Simple keyword extraction from raw text
+function extractSkillsFromText(text) {
+  const allKeywords = [
+    'python', 'javascript', 'typescript', 'react', 'node', 'sql', 'postgresql',
+    'mongodb', 'aws', 'gcp', 'azure', 'docker', 'kubernetes', 'terraform',
+    'machine learning', 'deep learning', 'nlp', 'tensorflow', 'pytorch',
+    'data analysis', 'statistics', 'tableau', 'communication', 'leadership',
+    'management', 'agile', 'scrum', 'pmp', 'ci/cd', 'git', 'java', 'c++',
+    'system design', 'microservices', 'rest api', 'graphql',
+  ];
+  return allKeywords.filter(kw => text.includes(kw));
+}
+
+function extractYearsFromText(text) {
+  const match = text.match(/(\d+)\+?\s*(?:years|yrs|yr)/);
+  return match ? parseInt(match[1]) : 2;
+}
+
+function extractEducationFromText(text) {
+  if (text.includes('phd') || text.includes('doctorate')) return 'phd';
+  if (text.includes('master') || text.includes('mtech') || text.includes('mba') || text.includes('ms ')) return 'master';
+  if (text.includes('bachelor') || text.includes('btech') || text.includes('b.e') || text.includes('degree')) return 'bachelor';
+  return 'bachelor';
 }
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authService = require('../services/auth.service');
+const pool = require('../db/pool');
 const { authenticate } = require('../middleware/auth.middleware');
 const logger = require('../utils/logger');
 
@@ -59,15 +60,34 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await authService.getUserById(req.user.userId);
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
+    if (!user) return res.status(404).json({ error: 'User not found.' });
     res.json(user);
   } catch (err) {
     logger.error(`Profile fetch error: ${err.message}`);
     res.status(500).json({ error: 'Failed to fetch profile.' });
+  }
+});
+
+// GET /api/auth/notifications - Get user notifications
+router.get('/notifications', authenticate, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+      [req.user.userId]
+    );
+    res.json({ notifications: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch notifications.' });
+  }
+});
+
+// PUT /api/auth/notifications/read - Mark all as read
+router.put('/notifications/read', authenticate, async (req, res) => {
+  try {
+    await pool.query('UPDATE notifications SET is_read = true WHERE user_id = $1', [req.user.userId]);
+    res.json({ message: 'All notifications marked as read.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update notifications.' });
   }
 });
 

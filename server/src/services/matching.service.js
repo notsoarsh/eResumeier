@@ -225,6 +225,19 @@ class MatchingService {
 
     logger.info(`Match run ${runId}: ${matchEntries.length} pairs, avg ${(avgScore * 100).toFixed(1)}%, stable: ${isStable}`);
 
+    // Create notifications for matched candidates
+    for (const [candId, jobId] of sortedMatches) {
+      const userId = candidateMeta[candId]?.userId;
+      if (userId) {
+        const jobTitle = jobMeta[jobId]?.title || 'a job';
+        const score = (scores[`${candId}|${jobId}`] * 100).toFixed(1);
+        await pool.query(
+          `INSERT INTO notifications (user_id, message, type) VALUES ($1, $2, 'match')`,
+          [userId, `You have been matched to "${jobTitle}" with a ${score}% compatibility score.`]
+        );
+      }
+    }
+
     return { runId, algorithm: 'gale-shapley', distanceMetric: 'manhattan', candidateCount: filteredCandidates.length, jobCount: filteredJobs.length, matchCount: matchEntries.length, avgScore: parseFloat(avgScore.toFixed(4)), avgPercentage: parseFloat((avgScore * 100).toFixed(1)), isStable, blockingPairs: blockingPairs.length, proposalCount, matches: matchResults, allScores: scores };
   }
 }

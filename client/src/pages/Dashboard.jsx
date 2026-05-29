@@ -16,13 +16,18 @@ function Dashboard({ user }) {
 function CandidateDashboard({ user, navigate }) {
   const [resumes, setResumes] = useState([]);
   const [matches, setMatches] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const resumesRes = await api.get('/resumes');
+        const [resumesRes, notifRes] = await Promise.all([
+          api.get('/resumes'),
+          api.get('/auth/notifications'),
+        ]);
         setResumes(resumesRes.data.resumes || []);
+        setNotifications(notifRes.data.notifications || []);
         const myResumeIds = (resumesRes.data.resumes || []).map(r => r.resume_id);
 
         const historyRes = await api.get('/match/history');
@@ -83,6 +88,18 @@ function CandidateDashboard({ user, navigate }) {
       {matches.length === 0 && (
         <div className="panel">
           <p style={{ color: '#94a3b8' }}>No matches yet. Upload your resume and wait for the admin to run the matching algorithm.</p>
+        </div>
+      )}
+
+      {notifications.length > 0 && (
+        <div className="panel">
+          <h3>Notifications</h3>
+          {notifications.slice(0, 5).map((n, i) => (
+            <div key={i} style={{ padding: '0.6rem 0', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: n.is_read ? '#64748b' : '#e2e8f0' }}>{n.message}</span>
+              <span style={{ fontSize: '0.7rem', color: '#64748b', whiteSpace: 'nowrap', marginLeft: '1rem' }}>{new Date(n.created_at).toLocaleDateString()}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
