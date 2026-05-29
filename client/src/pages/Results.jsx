@@ -73,7 +73,7 @@ function Results({ user }) {
           <div className="stat-label">Jobs</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{(run.avg_score * 100).toFixed(1)}%</div>
+          <div className="stat-value">{matches.length > 0 ? Math.round(matches.reduce((s, m) => s + (m.justification_json?.percentage || 0), 0) / matches.length) : 0}%</div>
           <div className="stat-label">Avg Score</div>
         </div>
         <div className="stat-card">
@@ -89,7 +89,7 @@ function Results({ user }) {
             <span className="candidate">{m.resume_name || `Candidate ${i + 1}`}</span>
             <span className="arrow">⟷</span>
             <span className="job">{m.job_title} at {m.job_company}</span>
-            <span className="score">{(m.similarity_score * 100).toFixed(1)}%</span>
+            <span className="score">{m.justification_json?.percentage || Math.round(m.similarity_score * 100)}%</span>
           </div>
         ))}
       </div>
@@ -109,7 +109,7 @@ function Results({ user }) {
                     <td>{m.rank}</td>
                     <td>{m.resume_name || 'Candidate'}</td>
                     <td>{m.job_title}</td>
-                    <td><span className="badge badge-success">{(m.similarity_score * 100).toFixed(1)}%</span></td>
+                    <td><span className="badge badge-success">{m.justification_json?.percentage || Math.round(m.similarity_score * 100)}%</span></td>
                     <td><span className="badge badge-info">Tier {m.tier}</span></td>
                     <td>#{justification.candidatePreferenceRank || '-'}</td>
                     <td>#{justification.jobPreferenceRank || '-'}</td>

@@ -200,12 +200,22 @@ class MatchingService {
     const sortedMatches = matchEntries.sort((a, b) => scores[`${b[0]}|${b[1]}`] - scores[`${a[0]}|${a[1]}`]);
     let rank = 1;
 
+    // Normalize scores for display (best match = ~95%, scale others proportionally)
+    const maxScore = sortedMatches.length > 0 ? scores[`${sortedMatches[0][0]}|${sortedMatches[0][1]}`] : 1;
+    const normalizeForDisplay = (rawScore) => {
+      if (maxScore === 0) return 0;
+      return Math.min(98, Math.round((rawScore / maxScore) * 95));
+    };
+
     for (const [candId, jobId] of sortedMatches) {
       const score = scores[`${candId}|${jobId}`];
-      const tier = this.classifyTier(score);
+      const displayPercentage = normalizeForDisplay(score);
+      const tier = displayPercentage >= 80 ? 'A' : displayPercentage >= 60 ? 'B' : 'C';
+
       const justification = {
         score: parseFloat(score.toFixed(4)),
-        percentage: parseFloat((score * 100).toFixed(1)),
+        rawPercentage: parseFloat((score * 100).toFixed(1)),
+        percentage: displayPercentage,
         tier,
         candidatePreferenceRank: candidatePrefs[candId].indexOf(jobId) + 1,
         jobPreferenceRank: jobPrefs[jobId].indexOf(candId) + 1,
@@ -219,7 +229,7 @@ class MatchingService {
         [runId, candId, jobId, score.toFixed(4), rank, tier, JSON.stringify(justification), true]
       );
 
-      matchResults.push({ rank, candidateId: candId, jobId, jobTitle: jobMeta[jobId]?.title, jobCompany: jobMeta[jobId]?.company, score: parseFloat(score.toFixed(4)), percentage: parseFloat((score * 100).toFixed(1)), tier });
+      matchResults.push({ rank, candidateId: candId, jobId, jobTitle: jobMeta[jobId]?.title, jobCompany: jobMeta[jobId]?.company, score: parseFloat(score.toFixed(4)), percentage: displayPercentage, tier });
       rank++;
     }
 
