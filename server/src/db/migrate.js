@@ -127,6 +127,19 @@ CREATE TABLE IF NOT EXISTS match_runs (
   is_stable BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  notification_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  type VARCHAR(50) DEFAULT 'info',
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for fast per-user notification queries
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
 `;
 
 async function runMigration() {
