@@ -21,6 +21,14 @@ const DIMENSIONS = [
 // Nielsen job openings
 const JOBS = [
   {
+    title: 'Backend Software Engineer (Java/Node.js)',
+    company: 'Nielsen',
+    description: 'Nielsen is hiring a Backend Software Engineer to build scalable microservices and REST APIs for our data platform. Requirements: Strong proficiency in Java or Scala, Node.js, NestJS or Express.js, PostgreSQL, SQL, Docker, Kubernetes, and AWS (VPC, EC2). Experience with containerized deployments, multi-stage Dockerfiles, and Docker Compose. Familiarity with Git, CI/CD pipelines, and Linux environments. Exposure to Next.js or frontend frameworks is a plus. Bachelor degree in Computer Science or Engineering required. Strong problem-solving skills; competitive programming background preferred. 0-2 years experience or strong internship/project portfolio accepted.',
+    location: 'Bangalore',
+    salaryRange: '12-20 LPA',
+    vector: [3, 8, 7, 2, 3, 7, 5, 3, 8, 0, 5, 4],
+  },
+  {
     title: 'Senior Data Engineer',
     company: 'Nielsen',
     description: 'Nielsen is hiring a Senior Data Engineer to build and maintain large-scale data pipelines. Requirements: 5+ years experience, Python, SQL, PostgreSQL, AWS (S3, Redshift, Glue), Spark, ETL pipelines, data warehousing, Docker. Strong problem-solving skills. Bachelor or Master in CS preferred. Agile experience needed.',
@@ -64,6 +72,11 @@ const JOBS = [
 
 // Candidates (seeded with pre-computed vectors)
 const CANDIDATES = [
+  {
+    email: 'mox@example.com', firstName: 'MOX', lastName: '',
+    resume: 'B.Tech Computer Science student at Thapar Institute of Engineering and Technology (GPA 8.5/10, Expected June 2027). Proficient in Java, Scala, JavaScript (ES6+), SQL, HTML5, CSS3. Frameworks: NestJS, Next.js, Node.js, Tailwind CSS, Express.js. Cloud & DevOps: Docker, Docker Compose, Kubernetes, AWS (VPC, EC2). Tools: Git, GitHub, IntelliJ IDEA, VS Code, Linux CLI. Built eResumeier (AI-powered resume matching platform using Next.js, NestJS, PostgreSQL) and multi-container microservices infrastructure with Docker Compose, custom network bridges, and persistent volumes. Solved 200+ algorithmic problems on LeetCode and HackerRank using Java and Scala. Finalist at Bain & Company BrAINWARS Case Competition 2026. Technical leadership in campus initiatives.',
+    vector: [3, 8, 6, 2, 3, 7, 6, 4, 8, 0, 4, 4],
+  },
   {
     email: 'rahul.de@demo.com', firstName: 'Rahul', lastName: 'Sharma',
     resume: 'Senior Data Engineer with 6 years at Flipkart and Walmart Labs. Expert in Python, SQL, PostgreSQL, AWS Redshift, S3, Glue, Spark, ETL pipelines, data warehousing, Docker, Airflow. M.Tech from IIT Delhi. Strong problem-solving and system design skills. Agile practitioner.',
