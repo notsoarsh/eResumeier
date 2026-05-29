@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, FileText, Briefcase, Zap, BarChart3, Clock, Shield, User, Building2, LogOut } from 'lucide-react';
 import './Navbar.css';
 
 function Navbar({ user, onLogout }) {
@@ -11,48 +12,45 @@ function Navbar({ user, onLogout }) {
 
   return (
     <nav className="navbar">
-      <span className="logo">⚡ eResumeier</span>
+      <span className="logo">eResumeier</span>
       <div className="nav-links">
-        <NavLink to="/">Dashboard</NavLink>
+        <NavLink to="/"><LayoutDashboard size={15} /> Dashboard</NavLink>
 
-        {/* Candidate: upload resume, browse jobs, see their results */}
         {user.role === 'candidate' && (
           <>
-            <NavLink to="/resumes">My Resumes</NavLink>
-            <NavLink to="/jobs">Browse Jobs</NavLink>
-            <NavLink to="/results">My Matches</NavLink>
+            <NavLink to="/resumes"><FileText size={15} /> My Resumes</NavLink>
+            <NavLink to="/jobs"><Briefcase size={15} /> Browse Jobs</NavLink>
+            <NavLink to="/results"><BarChart3 size={15} /> My Matches</NavLink>
           </>
         )}
 
-        {/* Employer: manage jobs, see candidate matches */}
         {user.role === 'employer' && (
           <>
-            <NavLink to="/jobs">My Jobs</NavLink>
-            <NavLink to="/results">Matched Candidates</NavLink>
+            <NavLink to="/jobs"><Briefcase size={15} /> My Jobs</NavLink>
+            <NavLink to="/results"><BarChart3 size={15} /> Matched Candidates</NavLink>
           </>
         )}
 
-        {/* Admin: everything */}
         {user.role === 'admin' && (
           <>
-            <NavLink to="/resumes">Resumes</NavLink>
-            <NavLink to="/jobs">Jobs</NavLink>
-            <NavLink to="/matching">Run Matching</NavLink>
-            <NavLink to="/results">Results</NavLink>
-            <NavLink to="/history">History</NavLink>
-            <NavLink to="/admin">Admin Panel</NavLink>
+            <NavLink to="/resumes"><FileText size={15} /> Resumes</NavLink>
+            <NavLink to="/jobs"><Briefcase size={15} /> Jobs</NavLink>
+            <NavLink to="/matching"><Zap size={15} /> Run Matching</NavLink>
+            <NavLink to="/results"><BarChart3 size={15} /> Results</NavLink>
+            <NavLink to="/history"><Clock size={15} /> History</NavLink>
+            <NavLink to="/admin"><Shield size={15} /> Admin</NavLink>
           </>
         )}
       </div>
       <div className="nav-right">
         <span className="user-badge">
-          {user.role === 'candidate' && '👤'}
-          {user.role === 'employer' && '🏢'}
-          {user.role === 'admin' && '🛡️'}
+          {user.role === 'candidate' && <User size={14} />}
+          {user.role === 'employer' && <Building2 size={14} />}
+          {user.role === 'admin' && <Shield size={14} />}
           {' '}{user.firstName} {user.lastName}
           <span className="role-tag">{user.role}</span>
         </span>
-        <button className="btn-logout" onClick={handleLogout}>Logout</button>
+        <button className="btn-logout" onClick={handleLogout}><LogOut size={14} /> Logout</button>
       </div>
     </nav>
   );

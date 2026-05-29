@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileText, Briefcase, Target, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import api from '../api';
 import { PageLoader, SkeletonCard } from '../components/Loader';
 import './Pages.css';
@@ -49,17 +50,17 @@ function CandidateDashboard({ user, navigate }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">📄</div>
+          <div className="stat-icon"><FileText size={28} color="#60a5fa" /></div>
           <div className="stat-value">{resumes.length}</div>
           <div className="stat-label">Resumes Uploaded</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">✅</div>
+          <div className="stat-icon"><CheckCircle size={28} color="#34d399" /></div>
           <div className="stat-value">{resumes.filter(r => r.status === 'parsed').length}</div>
           <div className="stat-label">Successfully Parsed</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">🎯</div>
+          <div className="stat-icon"><Target size={28} color="#a78bfa" /></div>
           <div className="stat-value">{matches.length}</div>
           <div className="stat-label">Job Matches Found</div>
         </div>
@@ -115,17 +116,17 @@ function EmployerDashboard({ user, navigate }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">💼</div>
+          <div className="stat-icon"><Briefcase size={28} color="#60a5fa" /></div>
           <div className="stat-value">{jobs.length}</div>
           <div className="stat-label">Jobs Posted</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">✅</div>
+          <div className="stat-icon"><CheckCircle size={28} color="#34d399" /></div>
           <div className="stat-value">{jobs.filter(j => j.status === 'open').length}</div>
           <div className="stat-label">Active Jobs</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">👥</div>
+          <div className="stat-icon"><Users size={28} color="#a78bfa" /></div>
           <div className="stat-value">{matches.length}</div>
           <div className="stat-label">Candidates Matched</div>
         </div>
@@ -201,22 +202,22 @@ function AdminDashboard({ user, navigate }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">📄</div>
+          <div className="stat-icon"><FileText size={28} color="#60a5fa" /></div>
           <div className="stat-value">{stats.resumes}</div>
           <div className="stat-label">Candidates in Pool</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">💼</div>
+          <div className="stat-icon"><Briefcase size={28} color="#a78bfa" /></div>
           <div className="stat-value">{stats.jobs}</div>
           <div className="stat-label">Active Jobs</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">🎯</div>
+          <div className="stat-icon"><Target size={28} color="#34d399" /></div>
           <div className="stat-value">{stats.runs}</div>
           <div className="stat-label">Match Runs</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📊</div>
+          <div className="stat-icon"><TrendingUp size={28} color="#fbbf24" /></div>
           <div className="stat-value">{stats.avgScore}%</div>
           <div className="stat-label">Latest Avg Score</div>
         </div>

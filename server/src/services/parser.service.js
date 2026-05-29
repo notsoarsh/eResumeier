@@ -102,7 +102,7 @@ class ParserService {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         const body = {
           contents: [{ parts: [{ text: SYSTEM_PROMPT + '\n\n' + userPrompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+          generationConfig: { temperature: 0.1, maxOutputTokens: 10000 }
         };
 
         const response = await fetch(url, {

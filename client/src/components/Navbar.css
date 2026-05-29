@@ -10,11 +10,12 @@
   z-index: 1000;
 }
 .navbar .logo {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 800;
   background: linear-gradient(135deg, #60a5fa, #a78bfa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
 }
 .nav-links { display: flex; gap: 1.5rem; }
 .nav-links a {
@@ -22,8 +23,11 @@
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
-.nav-links a:hover, .nav-links a.active { color: #60a5fa; font-weight: 600; }
+.nav-links a:hover, .nav-links a.active { color: #60a5fa; font-weight: 600; text-decoration: none; }
 .nav-right { display: flex; align-items: center; gap: 1rem; }
 .user-badge {
   background: #334155;
@@ -51,5 +55,8 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 .btn-logout:hover { border-color: #ef4444; color: #ef4444; }

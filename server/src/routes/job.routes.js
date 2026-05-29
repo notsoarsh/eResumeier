@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
   try {
     const { search, location, status, employerId, limit, offset } = req.query;
 
-    let query = 'SELECT job_id, employer_id, title, company, location, salary_range, employment_type, status, deadline, created_at FROM job_postings WHERE 1=1';
+    let query = 'SELECT job_id, employer_id, title, company, description, location, salary_range, employment_type, status, deadline, created_at FROM job_postings WHERE 1=1';
     const params = [];
     let paramIdx = 0;
 

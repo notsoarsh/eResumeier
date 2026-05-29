@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
 import { PageLoader } from '../components/Loader';
+import JobModal from '../components/JobModal';
 import './Pages.css';
 
 function Jobs({ user }) {
@@ -9,6 +10,7 @@ function Jobs({ user }) {
   const [form, setForm] = useState({ title: '', company: '', description: '', location: '', salaryRange: '' });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState(null);
 
   useEffect(() => { loadJobs(); }, []);
 
@@ -85,7 +87,7 @@ function Jobs({ user }) {
       {loading && <PageLoader message="Loading jobs..." />}
 
       {!loading && jobs.map(job => (
-        <div className="job-card" key={job.job_id}>
+        <div className="job-card" key={job.job_id} onClick={() => setSelectedJob(job)} style={{ cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
             <div>
               <div className="job-title">{job.title}</div>
@@ -98,10 +100,17 @@ function Jobs({ user }) {
             {job.salary_range && <span>💰 {job.salary_range}</span>}
             <span>📅 {new Date(job.created_at).toLocaleDateString()}</span>
           </div>
+          {job.description && (
+            <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#94a3b8', lineHeight: '1.5' }}>
+              {job.description.length > 200 ? job.description.substring(0, 200) + '...' : job.description}
+            </p>
+          )}
         </div>
       ))}
 
       {!loading && jobs.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>No jobs posted yet.</p>}
+
+      {selectedJob && <JobModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
     </div>
   );
 }
