@@ -5,7 +5,7 @@ import { PageLoader } from '../components/Loader';
 import RadarChartComponent from '../components/RadarChart';
 import './Pages.css';
 
-function Results() {
+function Results({ user }) {
   const { runId } = useParams();
   const [run, setRun] = useState(null);
   const [matches, setMatches] = useState([]);
@@ -17,20 +17,25 @@ function Results() {
     try {
       let targetRunId = runId;
 
-      // If no runId in URL, get the latest run
       if (!targetRunId) {
         const historyRes = await api.get('/match/history');
         const runs = historyRes.data.runs || [];
-        if (runs.length === 0) {
-          setLoading(false);
-          return;
-        }
+        if (runs.length === 0) { setLoading(false); return; }
         targetRunId = runs[0].run_id;
       }
 
       const res = await api.get(`/match/results/${targetRunId}`);
+      let matchData = res.data.matches || [];
+
+      // If user is a candidate, only show their matches
+      if (user?.role === 'candidate') {
+        const resumesRes = await api.get('/resumes');
+        const myResumeIds = (resumesRes.data.resumes || []).map(r => r.resume_id);
+        matchData = matchData.filter(m => myResumeIds.includes(m.resume_id));
+      }
+
       setRun(res.data.run);
-      setMatches(res.data.matches || []);
+      setMatches(matchData);
     } catch (err) {
       console.error('Load results error:', err);
     } finally {

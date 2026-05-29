@@ -15,17 +15,26 @@ function Dashboard({ user }) {
 function CandidateDashboard({ user, navigate }) {
   const [resumes, setResumes] = useState([]);
   const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/resumes').then(r => setResumes(r.data.resumes || [])).catch(() => {});
-    // Get latest match results
-    api.get('/match/history').then(async (r) => {
-      const runs = r.data.runs || [];
-      if (runs.length > 0) {
-        const res = await api.get(`/match/results/${runs[0].run_id}`);
-        setMatches(res.data.matches || []);
-      }
-    }).catch(() => {});
+    async function load() {
+      try {
+        const resumesRes = await api.get('/resumes');
+        setResumes(resumesRes.data.resumes || []);
+        const myResumeIds = (resumesRes.data.resumes || []).map(r => r.resume_id);
+
+        const historyRes = await api.get('/match/history');
+        const runs = historyRes.data.runs || [];
+        if (runs.length > 0) {
+          const res = await api.get(`/match/results/${runs[0].run_id}`);
+          const myMatches = (res.data.matches || []).filter(m => myResumeIds.includes(m.resume_id));
+          setMatches(myMatches);
+        }
+      } catch (err) { console.error(err); }
+      finally { setLoading(false); }
+    }
+    load();
   }, []);
 
   return (
