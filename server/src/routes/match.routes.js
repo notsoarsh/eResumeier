@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const matchingService = require('../services/matching.service');
+const emailService = require('../services/email.service');
 const pool = require('../db/pool');
 const logger = require('../utils/logger');
 
@@ -87,6 +88,44 @@ router.get('/history', authenticate, async (req, res) => {
   } catch (err) {
     logger.error(`Match history error: ${err.message}`);
     res.status(500).json({ error: 'Failed to fetch match history.' });
+  }
+});
+
+// POST /api/match/send-shortlist - Send shortlist email to a candidate
+router.post('/send-shortlist', authenticate, authorize('admin', 'employer'), async (req, res) => {
+  try {
+    const { matchId } = req.body;
+    if (!matchId) return res.status(400).json({ error: 'matchId is required.' });
+
+    // Get match details with candidate and job info
+    const result = await pool.query(
+      `SELECT mr.*, u.email AS candidate_email, u.first_name, u.last_name,
+              jp.title AS job_title, jp.company
+       FROM match_results mr
+       JOIN resumes r ON r.resume_id = mr.resume_id
+       JOIN users u ON u.user_id = r.user_id
+       JOIN job_postings jp ON jp.job_id = mr.job_id
+       WHERE mr.match_id = $1`,
+      [matchId]
+    );
+
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Match not found.' });
+
+    const match = result.rows[0];
+    const score = match.justification_json?.percentage || Math.round(match.similarity_score * 100);
+
+    await emailService.sendShortlistEmail({
+      candidateEmail: match.candidate_email,
+      candidateName: `${match.first_name} ${match.last_name}`,
+      jobTitle: match.job_title,
+      company: match.company,
+      score,
+    });
+
+    res.json({ message: `Shortlist email sent to ${match.candidate_email}` });
+  } catch (err) {
+    logger.error(`Send shortlist email error: ${err.message}`);
+    res.status(500).json({ error: err.message });
   }
 });
 

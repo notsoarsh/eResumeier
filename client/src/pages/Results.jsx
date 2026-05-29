@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import api from '../api';
 import { PageLoader } from '../components/Loader';
 import RadarChartComponent from '../components/RadarChart';
+import { Mail } from 'lucide-react';
 import './Pages.css';
 
 function Results({ user }) {
@@ -10,6 +11,8 @@ function Results({ user }) {
   const [run, setRun] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [emailSending, setEmailSending] = useState({});
+  const [emailSent, setEmailSent] = useState({});
 
   useEffect(() => { loadResults(); }, [runId]);
 
@@ -84,14 +87,36 @@ function Results({ user }) {
 
       <div className="panel">
         <h3>🎯 Stable Match Pairs</h3>
-        {matches.map((m, i) => (
-          <div className="match-card" key={i}>
-            <span className="candidate">{m.resume_name || `Candidate ${i + 1}`}</span>
-            <span className="arrow">⟷</span>
-            <span className="job">{m.job_title} at {m.job_company}</span>
-            <span className="score">{m.justification_json?.percentage || Math.round(m.similarity_score * 100)}%</span>
-          </div>
-        ))}
+        {matches.map((m, i) => {
+          const pct = m.justification_json?.percentage || Math.round(m.similarity_score * 100);
+          return (
+            <div className="match-card" key={i}>
+              <span className="candidate">{m.resume_name || `Candidate ${i + 1}`}</span>
+              <span className="arrow">⟷</span>
+              <span className="job">{m.job_title} at {m.job_company}</span>
+              <span className="score">{pct}%</span>
+              {user?.role === 'admin' && pct >= 80 && (
+                <button
+                  className="btn btn-sm"
+                  style={{ background: emailSent[m.match_id] ? '#065f46' : '#334155', color: emailSent[m.match_id] ? '#34d399' : '#e2e8f0', marginLeft: '0.5rem', fontSize: '0.75rem' }}
+                  disabled={emailSending[m.match_id] || emailSent[m.match_id]}
+                  onClick={async () => {
+                    setEmailSending(prev => ({ ...prev, [m.match_id]: true }));
+                    try {
+                      await api.post('/match/send-shortlist', { matchId: m.match_id });
+                      setEmailSent(prev => ({ ...prev, [m.match_id]: true }));
+                    } catch (err) {
+                      alert(err.response?.data?.error || 'Failed to send email');
+                    }
+                    setEmailSending(prev => ({ ...prev, [m.match_id]: false }));
+                  }}
+                >
+                  <Mail size={12} /> {emailSent[m.match_id] ? 'Sent' : emailSending[m.match_id] ? 'Sending...' : 'Send Email'}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {matches.length > 0 && (
